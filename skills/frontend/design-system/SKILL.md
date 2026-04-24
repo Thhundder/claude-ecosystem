@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: Use this skill to generate or audit design systems, check visual consistency, and review PRs that touch styling.
+description: "Use when generating, auditing, or reviewing a design system — extracts tokens (colors, typography, spacing, radii, shadows), scores UI across 10 visual-consistency dimensions, detects AI-slop patterns, and syncs with Figma. TRIGGER: 'design system', 'design tokens', 'visual audit', 'brand consistency', 'UI looks off', starting a redesign, reviewing PRs that touch styling/theme files, Tailwind config or styled-components refactors. SKIP: single-component bug fixes, backend code, copy/content edits, pure logic refactors with no styling changes."
 origin: ECC
 ---
 

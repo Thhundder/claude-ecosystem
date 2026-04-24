@@ -1,6 +1,6 @@
 ---
 name: documentation-lookup
-description: Use up-to-date library and framework docs via Context7 MCP instead of training data. Activates for setup questions, API references, code examples, or when the user names a framework (e.g. React, Next.js, Prisma).
+description: "Use whenever answering about or writing code against any library, framework, SDK, API, CLI, or cloud service: fetch current docs via Context7 MCP (resolve-library-id then query-docs) instead of relying on training data. TRIGGER: setup/configuration questions, API reference or method lookup, code that imports a library (React, Next.js, Prisma, Supabase, Tailwind, Express, Django, etc.), version-specific behavior or migration, CLI flag usage. SKIP: training-data suffices for truly general programming concepts, pure internal business-logic debugging, refactoring with no library questions, code review of internal logic, or when the required MCP is not configured."
 origin: ECC
 ---
 

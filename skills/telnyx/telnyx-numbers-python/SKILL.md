@@ -1,7 +1,6 @@
 ---
 name: telnyx-numbers-python
-description: >-
-  Search, order, and manage phone numbers by location, features, and coverage.
+description: "Use when provisioning Telnyx phone numbers: search available_phone_numbers by area code / country / features, create number_orders to buy, list/release owned numbers, regulatory requirements, porting requests. TRIGGER: client.available_phone_numbers, client.number_orders, buy phone number, search numbers, port-in, regulatory_requirements. SKIP: editing settings on numbers already owned (use telnyx-numbers-config-python), messaging profile setup (use telnyx-messaging-profiles-python)."
 metadata:
   author: telnyx
   product: numbers

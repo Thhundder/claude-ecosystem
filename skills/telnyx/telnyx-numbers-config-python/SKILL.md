@@ -1,9 +1,6 @@
 ---
 name: telnyx-numbers-config-python
-description: >-
-  Configure phone number settings including caller ID, call forwarding,
-  messaging enablement, and connection assignments. This skill provides Python
-  SDK examples.
+description: "Use when updating settings on phone numbers already owned: bulk assign numbers to a messaging_profile_id, update voice/messaging/emergency settings, batch update/delete phone_numbers jobs, verify ownership, list numbers by voice or messaging settings. TRIGGER: messaging_numbers_bulk_updates, phone_numbers_jobs, update phone number, assign number to connection, emergency settings batch. SKIP: searching or buying new numbers (use telnyx-numbers-python), creating the messaging profile itself (use telnyx-messaging-profiles-python)."
 metadata:
   author: telnyx
   product: numbers-config

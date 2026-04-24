@@ -1,9 +1,6 @@
 ---
 name: telnyx-voice-advanced-python
-description: >-
-  Advanced call control features including DTMF sending, SIPREC recording, noise
-  suppression, client state, and supervisor controls. This skill provides Python
-  SDK examples.
+description: "Use for advanced Telnyx Call Control actions on a live call: send_dtmf, SIPREC recording start/stop, noise suppression (beta), client_state updates, supervisor role switching (barge/whisper/monitor), and join_ai_assistant to add a leg to an AI conversation. TRIGGER: send_dtmf, siprec_start, noise_suppression, switch_supervisor_role, join_ai_assistant, update client_state. SKIP: basic dial/answer/hangup/bridge (use telnyx-voice-python), bidirectional audio streaming or transcription (use telnyx-voice-streaming-python)."
 metadata:
   author: telnyx
   product: voice-advanced

@@ -1,8 +1,6 @@
 ---
 name: telnyx-messaging-python
-description: >-
-  Send and receive SMS/MMS, handle opt-outs and delivery webhooks. Use for
-  notifications, 2FA, or messaging apps.
+description: "Use when sending or receiving SMS/MMS through Telnyx: client.messages.send, inbound message webhooks, delivery receipts, 10DLC-compliant A2P sending, opt-out handling, E.164 formatting, 2FA/OTP, notifications. TRIGGER: client.messages, telnyx SMS, telnyx MMS, inbound message webhook, 10DLC, STOP/HELP keywords, from_/to phone. SKIP: configuring the messaging profile itself (use telnyx-messaging-profiles-python), buying or assigning numbers (use telnyx-numbers-python / telnyx-numbers-config-python)."
 metadata:
   author: telnyx
   product: messaging

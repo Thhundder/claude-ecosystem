@@ -1,9 +1,6 @@
 ---
 name: telnyx-voice-streaming-python
-description: >-
-  Stream call audio in real-time, fork media to external destinations, and
-  transcribe speech live. Use for real-time analytics and AI integrations. This
-  skill provides Python SDK examples.
+description: "Use when streaming live call audio out of Telnyx: fork_start/fork_stop to mirror media to an RTP target, streaming_start/streaming_stop for bidirectional WebSocket PCMU/PCMA media, and transcription_start/transcription_stop for real-time speech-to-text. TRIGGER: fork_start, streaming_start, transcription_start, bidirectional audio WebSocket, PCMU 8kHz, real-time STT on call, stream_url. SKIP: basic dial/bridge/DTMF (use telnyx-voice-python), SIPREC or supervisor controls (use telnyx-voice-advanced-python)."
 metadata:
   author: telnyx
   product: voice-streaming

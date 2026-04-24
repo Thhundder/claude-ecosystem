@@ -1,6 +1,6 @@
 ---
 name: deployment-patterns
-description: Deployment workflows, CI/CD pipeline patterns, Docker containerization, health checks, rollback strategies, and production readiness checklists for web applications.
+description: "Use when setting up CI/CD, planning blue-green/canary/rolling releases, wiring health/readiness probes, configuring env-specific settings, or running a production readiness checklist. TRIGGER: CI/CD, deploy, rollout, blue-green, canary, rolling deploy, health check, readiness probe, production release. SKIP: local dev only, no prod config, prototype/spike work, package publishing (not app deploy)."
 origin: ECC
 ---
 

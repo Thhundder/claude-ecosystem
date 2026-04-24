@@ -1,6 +1,6 @@
 ---
 name: verification-loop
-description: "A comprehensive verification system for Claude Code sessions."
+description: "Use when running multi-phase quality gates (build, typecheck, lint, tests+coverage, security scan, diff review) after feature work, refactors, or before opening a PR. TRIGGER: 'verify', 'run all checks', 'pre-PR check', 'quality gates', after finishing a feature or refactor, before PR creation. SKIP: single-file edits, docs-only changes, work in progress mid-implementation, projects without build/test scripts."
 origin: ECC
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: frontend-patterns
-description: Frontend development patterns for React, Next.js, state management, performance optimization, and UI best practices.
+description: "Use when writing or reviewing React/Next.js component code — composition, compound components, render props, custom hooks (useToggle, useQuery, useDebounce), Context+Reducer state, memoization, code-splitting, virtualization, controlled forms, error boundaries, Framer Motion animations, keyboard/focus patterns. TRIGGER: building React components, managing client state, data fetching with SWR/React Query, optimizing re-renders, form validation with Zod, lazy loading heavy components, .tsx/.jsx files. SKIP: backend/API code, design-token or visual-system concerns (use design-system), pure WCAG audits (use accessibility), Python/server-only code."
 origin: ECC
 ---
 

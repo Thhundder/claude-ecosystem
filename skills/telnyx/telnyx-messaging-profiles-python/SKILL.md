@@ -1,9 +1,6 @@
 ---
 name: telnyx-messaging-profiles-python
-description: >-
-  Create and manage messaging profiles with number pools, sticky sender, and
-  geomatch features. Configure short codes for high-volume messaging. This skill
-  provides Python SDK examples.
+description: "Use when creating or managing Telnyx messaging profiles: CRUD on messaging_profiles, webhook_url/webhook_failover_url, number pools with sticky sender and geomatch, listing numbers/short codes attached to a profile, smart_encoding, mms_fall_back_to_sms, url_shortener_settings. TRIGGER: client.messaging_profiles, messaging profile webhook, number pool, sticky sender, geomatch, short codes attached to profile. SKIP: sending SMS/MMS (use telnyx-messaging-python), assigning numbers in bulk (use telnyx-numbers-config-python)."
 metadata:
   author: telnyx
   product: messaging-profiles

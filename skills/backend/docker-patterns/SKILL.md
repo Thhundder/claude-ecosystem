@@ -1,6 +1,6 @@
 ---
 name: docker-patterns
-description: Docker and Docker Compose patterns for local development, container security, networking, volume strategies, and multi-service orchestration.
+description: "Use when writing a Dockerfile/docker-compose.yml, debugging container networking or volumes, hardening image security/size, or orchestrating multi-service local dev. TRIGGER: Dockerfile, docker-compose, container, multi-stage build, bind mount, depends_on, container networking. SKIP: no container in project, local-only dev without Docker, Kubernetes manifests (k8s-specific), serverless/functions deploy."
 origin: ECC
 ---
 

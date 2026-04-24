@@ -1,8 +1,6 @@
 ---
 name: telnyx-voice-python
-description: >-
-  Programmatic call control: make/receive calls, transfer, bridge, gather DTMF,
-  stream audio. Real-time call events via webhooks.
+description: "Use for Telnyx Call Control core flows in Python: dial outbound, answer/hangup inbound, bridge two legs, transfer, play audio, gather DTMF, speak TTS, and drive the call from webhook events using call_control_id. TRIGGER: client.calls.dial, client.calls.actions, call_control_id, webhook call.initiated / call.answered, bridge, transfer, gather_using_speak. SKIP: bidirectional audio streaming and live transcription (use telnyx-voice-streaming-python), SIPREC / noise suppression / supervisor (use telnyx-voice-advanced-python), AI-assistant-placed calls (use telnyx-ai-outbound-voice-python)."
 metadata:
   author: telnyx
   product: voice

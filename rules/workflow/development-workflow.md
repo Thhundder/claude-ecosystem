@@ -19,7 +19,7 @@ Before writing any new implementation:
 - Use the **planner** agent for any feature that spans ≥3 files or introduces new architecture.
 - Generate: requirements restatement, dependencies, risks, phased steps.
 - **Wait for user confirmation** before touching code.
-- For complex work, use `/plan` or `/multi-plan` slash commands.
+- For complex work, use the `/plan` slash command.
 
 ## Phase 2 — TDD Implementation
 
@@ -39,7 +39,7 @@ Immediately after implementation:
 
 - **code-reviewer** for general quality
 - **security-reviewer** for any code touching auth, user input, secrets, external APIs, DB queries, or file system
-- **typescript-reviewer** / **python-reviewer** for language-specific smells
+- **typescript-reviewer** (or **cpp-reviewer**) for language-specific smells
 - **performance-optimizer** when touching hot paths
 
 Address CRITICAL and HIGH issues before continuing. MEDIUM when possible.

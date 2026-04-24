@@ -1,17 +1,6 @@
 ---
 name: prompt-optimizer
-description: >-
-  Analyze raw prompts, identify intent and gaps, match ECC components
-  (skills/commands/agents/hooks), and output a ready-to-paste optimized
-  prompt. Advisory role only — never executes the task itself.
-  TRIGGER when: user says "optimize prompt", "improve my prompt",
-  "how to write a prompt for", "help me prompt", "rewrite this prompt",
-  or explicitly asks to enhance prompt quality. Also triggers on Chinese
-  equivalents: "优化prompt", "改进prompt", "怎么写prompt", "帮我优化这个指令".
-  DO NOT TRIGGER when: user wants the task executed directly, or says
-  "just do it" / "直接做". DO NOT TRIGGER when user says "优化代码",
-  "优化性能", "optimize performance", "optimize this code" — those are
-  refactoring/performance tasks, not prompt optimization.
+description: "Use when rewriting a draft prompt with ECC components mapped (skills/commands/agents/hooks) and returning a ready-to-paste optimized prompt. Advisory-only — never executes the task. TRIGGER: 'optimize prompt', 'improve my prompt', 'rewrite this prompt', 'help me write a better prompt', '优化prompt', '改进prompt', '帮我优化这个指令'. SKIP: user wants task executed ('just do it', '直接做'), 'optimize code/performance' (refactoring, not prompt work), skill inventory requests, ECC configuration."
 origin: community
 metadata:
   author: YannJY02

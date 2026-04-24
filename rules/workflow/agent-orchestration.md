@@ -15,21 +15,15 @@ No user prompt needed — invoke automatically when:
 | Exploring an unfamiliar codebase | `code-explorer` |
 | Touching auth / inputs / secrets / DB / external APIs | `security-reviewer` |
 | Hot path / latency / DB query tuning | `performance-optimizer` |
-| Build is broken | `build-error-resolver` (or language-specific: `cpp-build-resolver`) |
-| E2E test authoring or failure triage | `e2e-runner` |
 | Refactoring for cleanup | `refactor-cleaner` |
 | Something silently broke in production | `silent-failure-hunter` |
-| Docs need updating | `doc-updater` |
 | PR review | `code-reviewer` + `security-reviewer` + language-specific reviewer in parallel |
-| Type design decisions | `type-design-analyzer` |
-| Comment cleanup | `comment-analyzer` |
 
 ## Language-Specific Reviewers
 
 | Language | Reviewer |
 |----------|----------|
 | TypeScript / JavaScript | `typescript-reviewer` |
-| Python | `python-reviewer` (add if missing) |
 | C++ | `cpp-reviewer` |
 
 ## Parallel Execution
@@ -50,8 +44,6 @@ First run security-reviewer, wait, then performance-optimizer, wait...
 ```
 
 ## Multi-Perspective Analysis
-
-For genuinely ambiguous problems — pick-one-of-three architecture, go/no-go calls, "should we refactor or rewrite" — invoke the **`council` skill**. It convenes four structured voices (optimist, pragmatist, skeptic, simplifier) and surfaces real disagreement before a choice.
 
 For high-stakes output where you can't afford a single reviewer to miss something, use **`santa-method`**: two independent review agents must both pass before the output ships.
 

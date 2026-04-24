@@ -1,6 +1,6 @@
 ---
 name: continuous-agent-loop
-description: Patterns and architectures for continuous autonomous Claude Code loops — from simple sequential pipelines to RFC-driven multi-agent DAG systems. Includes quality gates, eval integration, and recovery controls.
+description: "Use when architecting continuous autonomous Claude Code loops — sequential pipelines, NanoClaw REPL, infinite agentic loops, multi-day PR loops, RFC-driven multi-agent DAGs — with quality gates, eval integration, and recovery controls. TRIGGER: 'run autonomously', 'continuous loop', 'overnight agent', multi-day unattended work, parallel agents with merge coordination, CI-style dev pipelines. SKIP: one-off tasks, single interactive sessions, simple cron scheduling (use /schedule), one-shot /loop invocations."
 origin: ECC
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: deep-research
-description: Multi-source deep research using firecrawl and exa MCPs. Searches the web, synthesizes findings, and delivers cited reports with source attribution. Use when the user wants thorough research on any topic with evidence and citations.
+description: "Use when the user wants thorough, multi-source web research with citations: decompose into sub-questions, search via firecrawl and exa MCPs, deep-read key sources, and synthesize a cited report. TRIGGER: 'research', 'deep dive', 'investigate', 'current state of', competitive or market analysis, technology evaluation, due diligence, synthesis across 15-30 sources. SKIP: quick factual questions answerable in one sentence, existing summaries or internal docs already suffice, library/API documentation (use documentation-lookup / Context7), codebase questions, or when firecrawl and exa MCPs are not configured."
 origin: ECC
 ---
 

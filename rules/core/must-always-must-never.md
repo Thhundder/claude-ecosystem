@@ -4,7 +4,7 @@ Core principles that apply to every task, regardless of stack or project.
 
 ## Must Always
 
-- **Delegate to specialized agents** for domain tasks (planner, code-reviewer, security-reviewer, tdd-guide, etc.) instead of doing everything inline.
+- **Delegate to specialized agents** for domain tasks (planner, code-reviewer, security-reviewer, tdd-guide, silent-failure-hunter, etc.) instead of doing everything inline.
 - **Write tests before implementation** for any non-trivial change. Verify critical paths.
 - **Validate inputs at system boundaries** (user input, external API responses, file contents). Never trust external data.
 - **Prefer immutable updates** over mutating shared state.

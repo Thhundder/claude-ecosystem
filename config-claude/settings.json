@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "effortLevel": "high",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "Bash(diff:*)",
+      "Bash(echo:*)",
+      "Bash(which:*)",
+      "Bash(cd:*)",
+      "Bash(pwd:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(bun:*)",
+      "Bash(bunx:*)",
+      "Bash(node:*)",
+      "Bash(python3:*)",
+      "Bash(pip:*)",
+      "Bash(curl:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git blame:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git remote:*)",
+      "Bash(git fetch:*)",
+      "Bash(git stash list:*)",
+      "Bash(git stash show:*)",
+      "Bash(git tag:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git merge:*)",
+      "Bash(git pull:*)",
+      "Bash(git clone:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git rm:*)"
+    ],
+    "deny": [
+      "Bash(npm:*)",
+      "Bash(yarn:*)",
+      "Bash(pnpm:*)",
+      "Bash(npx:*)"
+    ],
+    "ask": [
+      "Bash(rm -rf:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command // empty'); if echo \"$cmd\" | grep -qE -- '(--no-verify|--no-gpg-sign)'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Hook bypass forbidden (--no-verify / --no-gpg-sign). Fix the underlying issue instead.\"}}'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

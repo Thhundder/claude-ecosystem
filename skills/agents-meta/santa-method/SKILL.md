@@ -1,6 +1,6 @@
 ---
 name: santa-method
-description: "Multi-agent adversarial verification with convergence loop. Two independent review agents must both pass before output ships."
+description: "Use when output ships to production/users and needs adversarial verification — two independent review agents must both pass before release (make a list, check it twice). TRIGGER: published/deployed content, compliance or brand constraints, code shipping without human review, customer-facing copy, batch-generated content at scale, hallucination-sensitive outputs (claims, stats, API refs, legal). SKIP: internal drafts, exploratory research, fast iteration loops, solo/WIP work, tasks with deterministic verification (use build/test/lint)."
 origin: "Ronald Skelton - Founder, RapportScore.ai"
 ---
 

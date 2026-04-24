@@ -1,6 +1,6 @@
 ---
 name: context-budget
-description: Audits Claude Code context window consumption across agents, skills, MCP servers, and rules. Identifies bloat, redundant components, and produces prioritized token-savings recommendations.
+description: "Use when auditing static context-window consumption across agents, skills, MCP servers, and rules — identifies bloat, redundant components, and produces prioritized token-savings recommendations. TRIGGER: 'context budget', '/context-budget', session feels sluggish, recently added many skills/MCP servers, planning to add components and need headroom, measuring token overhead. SKIP: runtime response-length tuning (use token-budget-advisor), mid-session compaction decisions (use strategic-compact), per-call API cost tuning (use cost-aware-llm-pipeline)."
 origin: ECC
 ---
 
