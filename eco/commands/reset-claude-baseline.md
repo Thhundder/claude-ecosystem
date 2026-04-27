@@ -104,24 +104,19 @@ for f in "$ECO/eco/commands"/*.md; do
 done
 
 # Skills — universal only (per the list below)
+# Trimmed 2026-04-27 — rare skills moved to per-project (install via tool-project)
 UNIVERSAL_SKILLS=(
-  "agents-meta/agent-harness-construction"
   "agents-meta/blueprint"
-  "agents-meta/continuous-agent-loop"
   "agents-meta/prompt-optimizer"
-  "agents-meta/santa-method"
-  "agents-meta/skill-creator"
+  "agents-meta/tool-finder"
+  "agents-meta/tool-project"
   "agents-meta/verification-loop"
   "agents-meta/workflow-apex"
-  "analysis/codebase-onboarding"
-  "analysis/deep-research"
   "analysis/documentation-lookup"
   "analysis/explore"
   "context-cost/context-budget"
   "quality/code-review-standards"
   "quality/fix-errors"
-  "testing/benchmark"
-  "testing/eval-harness"
   "testing/tdd-workflow"
   "testing/workflow-debug"
 )
