@@ -114,6 +114,7 @@ UNIVERSAL_SKILLS=(
   "agents-meta/workflow-apex"
   "analysis/documentation-lookup"
   "analysis/explore"
+  "analysis/feature-digest"
   "context-cost/context-budget"
   "quality/code-review-standards"
   "quality/fix-errors"
