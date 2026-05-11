@@ -47,6 +47,17 @@ Flag instructions that assume the model has a capability it
 doesn't have (e.g., assumes a tool that isn't listed, assumes 
 context the model can't see).
 
+### 7. Cache-unfriendly section ordering (dynamic prompts only)
+If the prompt is assembled by code (e.g. `build_prompt(features, ...)`), 
+flag every section that varies with features/runtime/locale but is 
+emitted BEFORE a section that is byte-identical across all calls. 
+Each such inversion ends OpenAI's automatic prefix cache early and 
+silently raises input-token cost. Also flag the classic killers 
+sitting in the static prefix: dates, session/call IDs, tenant or 
+customer names, non-deterministic dict/set iteration, whitespace 
+drift between code paths. See `references/prefix-caching.md` for 
+the full audit list and ordering rule.
+
 ## What you must NOT do
 
 - **Do not** invent new instructions or business rules
@@ -60,7 +71,7 @@ context the model can't see).
 Numbered list. For each issue:
 - Quote the original wording
 - Category (Hard constraint / Vague / Contradiction / Missing 
-  section / Tool consistency / Unstated assumption)
+  section / Tool consistency / Unstated assumption / Cache ordering)
 - Why it will cause an issue on v2 specifically
 - Severity (Critical / High / Medium / Low)
 

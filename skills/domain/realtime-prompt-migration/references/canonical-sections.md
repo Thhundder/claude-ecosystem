@@ -4,6 +4,8 @@ OpenAI recommends organizing prompts into short, labeled sections so the model c
 
 **Important:** not every prompt needs every section. Include only those that apply to the use case. Inventing irrelevant sections adds noise.
 
+**Ordering caveat for dynamic prompts:** the section list below is logical, not physical. If the prompt is assembled by code with feature flags, the *physical* order in the rendered string must group all byte-stable sections first and all feature/runtime-dependent sections last, regardless of the logical grouping below. This is non-negotiable for prefix caching to work — see `references/prefix-caching.md`.
+
 ## Table of contents
 
 1. Role and Objective

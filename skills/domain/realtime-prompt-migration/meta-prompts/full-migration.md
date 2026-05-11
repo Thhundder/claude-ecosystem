@@ -133,6 +133,56 @@ If the prompt is language-specific, add explicit rules in the
 - Specify what triggers a legitimate language switch 
   (substantive utterance, explicit request)
 
+### J. Cache-friendly section ordering (DYNAMIC PROMPTS ONLY)
+If the prompt is assembled by code (a `build_prompt(features, ...)` 
+function or equivalent), the migrated builder MUST place every 
+byte-stable section BEFORE any section that varies with features, 
+runtime context, locale, or tenant. OpenAI's automatic prefix cache 
+ends at the first differing byte, so a single dynamic section in 
+the middle invalidates the cache for everything after it.
+
+Concretely, partition sections into two ordered groups in the 
+builder:
+
+1. **Static prefix** (rendered first, in deterministic order, 
+   byte-identical across every possible feature combination): 
+   title, instruction priority, scope & safety, call recording, 
+   unclear audio, personality, length & pacing, variety, sample 
+   phrases, and any other section whose content does not depend on 
+   features/runtime.
+
+2. **Dynamic suffix** (rendered last): role (varies with features), 
+   language (varies with lang_lock), source of truth (varies with 
+   tools), conversation state block, reservation flow sections, 
+   tool docs, reference pronunciations, runtime context.
+
+This ordering may conflict with the v2 convention of putting 
+personality/tone at the end for recency bias on tonality. When in 
+conflict, **caching wins for production prompts** — recency on 
+tonality is a marginal effect; the input-token cost saving is 10×. 
+If the recency effect is genuinely needed, duplicate a one-line 
+personality reminder at the very end of the dynamic suffix; the 
+duplication costs a few tokens but the prefix stays cacheable.
+
+Audit the builder for cache killers in the static prefix:
+- Date/time interpolation
+- Session/call/request IDs
+- Tenant/customer/campsite name (move to runtime context block in 
+  the dynamic suffix)
+- Non-deterministic dict/set iteration (always `sorted(...)` before 
+  joining)
+- Whitespace drift between code paths
+- `if has_X:` toggles inside an otherwise stable section (split it 
+  or move it)
+
+The migrated builder MUST emit a hidden boundary marker between 
+the two zones (e.g. an HTML comment `<!-- DYNAMIC SECTIONS BELOW -->`) 
+so a snapshot test can pin the bytes of the static prefix.
+
+See `references/prefix-caching.md` for the full mechanism, the 
+killer audit list, and the cached-ratio targets to verify in 
+production logs.
+
 ## What you must NOT do
 
 - **Do not invent new tools**, features, or business rules not 
@@ -162,6 +212,14 @@ gpt-realtime-2. Use the canonical section headers (`# Role and
 Objective`, etc.). Preserve the original prompt's language 
 (if it's in French, output in French; if in English, in English).
 
+If the prompt is dynamically assembled, also produce **Section 3b: 
+Migrated Builder** — the rewritten builder code (e.g. the Python 
+function) that assembles sections in static-first / dynamic-last 
+order, with two clearly named lists (`STATIC_SECTIONS` and 
+`DYNAMIC_SECTIONS`) and the boundary marker emitted between them. 
+Comment any section that intentionally crosses the boundary 
+(should be rare) with the cache-impact justification.
+
 ### Section 4: Open Questions
 List any decisions you could not make alone — places where the 
 original prompt was ambiguous and you need the human to 
@@ -177,6 +235,13 @@ describe:
 - The expected agent behavior on v1.5
 - The expected agent behavior on v2 with the migrated prompt
 - What would constitute a regression
+
+For dynamically-assembled prompts, also include a **static-prefix 
+snapshot test**: a unit test that renders the builder with a 
+minimal feature set, splits at the boundary marker, and asserts the 
+SHA-256 of the static prefix bytes against a pinned expected hash. 
+Any future PR that drifts the prefix will fail this test, forcing 
+the author to acknowledge the cache-rate impact before re-snapshotting.
 
 ---
 

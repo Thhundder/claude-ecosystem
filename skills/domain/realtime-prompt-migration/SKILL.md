@@ -1,6 +1,6 @@
 ---
 name: realtime-prompt-migration
-description: Migrate OpenAI Realtime voice prompts from gpt-realtime-1.5 (or earlier) to gpt-realtime-2. Use this skill whenever the user is migrating a voice agent prompt to the new realtime model, auditing an existing voice prompt for v2 compatibility, debugging unexpected behavior after a model bump from 1.5 to 2, restructuring a flat voice prompt into the canonical v2 sections, or adding v2 features (preambles, reasoning effort, channels, entity capture, tool eagerness) to an existing prompt. Trigger even if the user just says "the voice agent behaves weirdly since the model bump" or "I migrated to gpt-realtime-2 and now it confirms everything" — these are classic v2 literal-interpretation symptoms that this skill addresses.
+description: Migrate OpenAI Realtime voice prompts from gpt-realtime-1.5 (or earlier) to gpt-realtime-2. Use this skill whenever the user is migrating a voice agent prompt to the new realtime model, auditing an existing voice prompt for v2 compatibility, debugging unexpected behavior after a model bump from 1.5 to 2, restructuring a flat voice prompt into the canonical v2 sections, restructuring a dynamically-assembled prompt builder for prefix-cache friendliness (static-first / dynamic-last ordering), or adding v2 features (preambles, reasoning effort, channels, entity capture, tool eagerness) to an existing prompt. Trigger even if the user just says "the voice agent behaves weirdly since the model bump", "I migrated to gpt-realtime-2 and now it confirms everything", or "my prompt is built dynamically and I want to optimize input token cost" — these are all addressed here.
 ---
 
 # Realtime Prompt Migration (gpt-realtime-1.5 → gpt-realtime-2)
@@ -21,6 +21,7 @@ This skill helps migrate OpenAI Realtime voice agent prompts to be v2-ready. The
 Read the original prompt the user provides. Before doing anything else, classify it:
 
 - **Is it structured by sections** (`# Role`, `# Tools`, etc.) or **flat prose**?
+- **Is it static (a single hand-written prompt) or dynamic (assembled by code from feature flags / runtime values)?** If dynamic, identify the builder function and enumerate the axes of variation. Caching strategy depends entirely on this.
 - **Does it use absolute words** (`always`, `never`, `must`, `only`, `forbidden`) and how many?
 - **Does it reference tools**? If yes, does it specify when to call vs when NOT to call each?
 - **Does it have any preamble guidance**?
@@ -56,6 +57,7 @@ Before applying changes, read these reference files:
 - `references/v2-changes-summary.md` — What changed from 1.5 to 2, with examples of bugs introduced
 - `references/canonical-sections.md` — The 12 canonical sections and when to use each
 - `references/common-pitfalls.md` — Known migration pitfalls and how to avoid them
+- `references/prefix-caching.md` — **Mandatory if the prompt is dynamically assembled by code.** Explains OpenAI's automatic prefix caching, the static-first / dynamic-last section ordering rule, common cache killers (dates, IDs, non-deterministic ordering), and how to verify with `cached_tokens` in usage logs.
 
 These references encode hard-won knowledge from the OpenAI v2 guide. Read them BEFORE proposing a migrated prompt.
 
@@ -63,11 +65,11 @@ These references encode hard-won knowledge from the OpenAI v2 guide. Read them B
 
 Output structure:
 
-1. **Migration Diagnosis** — issues found, organized by category (structure, constraints, conflicts, preambles, reasoning, tools, entities, audio, language)
+1. **Migration Diagnosis** — issues found, organized by category (structure, constraints, conflicts, preambles, reasoning, tools, entities, audio, language, **cache-friendly ordering** if dynamic)
 2. **Migration Plan** — before/after for each change, with rationale
-3. **Migrated Prompt** — the full restructured prompt ready to use
+3. **Migrated Prompt** — the full restructured prompt ready to use. **If the prompt is dynamically assembled, the migration must also reorganize the builder so all static sections come first and all feature/runtime-dependent sections come last** (see `references/prefix-caching.md`). Annotate the boundary in the builder code so future maintainers cannot accidentally interleave dynamic content into the static prefix.
 4. **Open Questions** — places where the original prompt was ambiguous and the user must disambiguate before finalizing
-5. **Test Scenarios** — 5-10 specific scenarios to run against the migrated prompt to verify no regression vs 1.5 behavior
+5. **Test Scenarios** — 5-10 specific scenarios to run against the migrated prompt to verify no regression vs 1.5 behavior. **For dynamic prompts, also include a snapshot test that pins the static-prefix bytes** so any future drift is caught in CI rather than silently halving the cache hit rate.
 
 ### Step 6 — Validate the migrated prompt
 

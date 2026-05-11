@@ -148,3 +148,61 @@ Resume normal responses only when the user clearly addresses you.
 **Root cause:** the prompt refers to `lookup_order` but the tool list registers `search_orders`. v2 is eager to help and may invent the name.
 
 **Fix:** during migration, do a strict cross-check. Every tool mentioned in the prompt must exist in the tool list with the EXACT name. Every tool in the list should be referenced in the prompt (with usage rules), or removed if unused.
+
+---
+
+## Pitfall 11: Dynamic content interleaved with static in the prompt builder
+
+**Symptom:** input-token cost stays high after migration even though the prompt is mostly stable across calls. `cached_tokens` in usage logs is < 20% of `input_tokens`.
+
+**Root cause:** the prompt is assembled by a `build_prompt(features, ...)` function that emits sections in a logical order (e.g. role → context → tools → personality), interleaving stable sections with feature-dependent ones. OpenAI's automatic prefix cache ends at the **first** differing token, so a single feature-dependent section near the top wastes the entire stable suffix that follows.
+
+**Fix:** restructure the builder so it emits ALL byte-stable sections first (the static prefix), then emits ALL feature/runtime-dependent sections (the dynamic suffix). Within each zone the order is irrelevant for caching. Pin the static prefix bytes with a snapshot test so future PRs can't silently regress the cache rate.
+
+**Anti-pattern:**
+```python
+sections = [
+    title,                          # static
+    role(features),                 # DYNAMIC — kills cache here
+    runtime_context,                # static (now uncached)
+    language(has_lang_lock),        # dynamic
+    scope_and_safety,               # static (uncached)
+    tools(features),                # dynamic
+    personality_and_tone,           # static (uncached) — supposed to live here for "recency"
+]
+return "\n\n".join(sections)
+```
+
+**Fix:**
+```python
+STATIC_SECTIONS = [
+    title,
+    instruction_priority,
+    runtime_context,
+    scope_and_safety,
+    call_recording,
+    unclear_audio,
+    personality_and_tone,
+    length_and_pacing,
+    variety,
+    sample_phrases,
+]
+DYNAMIC_SECTIONS = [
+    role(features),
+    language(has_lang_lock),
+    source_of_truth(features),
+    conversation_state_block(features),
+    reservation_sections(features),
+    tools(features),
+    reference_pronunciations(pronunciations),
+]
+return (
+    "\n\n".join(STATIC_SECTIONS)
+    + "\n\n<!-- DYNAMIC SECTIONS BELOW -->\n\n"
+    + "\n\n".join(DYNAMIC_SECTIONS)
+)
+```
+
+The cost: personality moves from the end (where v2 likes it for recency-bias tonality) to the static prefix at the top. In practice the recency effect on tone is marginal compared to a 10× input-cost reduction. If the tonality drift is genuinely measurable, duplicate one personality reminder line at the very end of the dynamic suffix — the duplication is a few tokens, the prefix stays cacheable.
+
+See `references/prefix-caching.md` for the full mechanism, killer audit list, snapshot-test pattern, and cached-ratio targets.
