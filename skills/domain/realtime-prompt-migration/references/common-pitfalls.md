@@ -203,6 +203,6 @@ return (
 )
 ```
 
-The cost: personality moves from the end (where v2 likes it for recency-bias tonality) to the static prefix at the top. In practice the recency effect on tone is marginal compared to a 10× input-cost reduction. If the tonality drift is genuinely measurable, duplicate one personality reminder line at the very end of the dynamic suffix — the duplication is a few tokens, the prefix stays cacheable.
+The trade-off: personality moves from the end (where v2 likes it for recency-bias tonality) to the static prefix at the top. The recency effect on tone is measurable in voice contexts on sessions > 3 min, not marginal as some sources claim. The recommended default is the HYBRID approach: full personality in the static prefix + condensed 2-3 line tonality reminder duplicated at the end of the dynamic suffix. This costs ~30 extra tokens per call but preserves both cache and recency anchor. See `references/prefix-caching.md` "Tension réelle..." section for the full rationale.
 
 See `references/prefix-caching.md` for the full mechanism, killer audit list, snapshot-test pattern, and cached-ratio targets.

@@ -156,13 +156,20 @@ builder:
    tools), conversation state block, reservation flow sections, 
    tool docs, reference pronunciations, runtime context.
 
-This ordering may conflict with the v2 convention of putting 
-personality/tone at the end for recency bias on tonality. When in 
-conflict, **caching wins for production prompts** — recency on 
-tonality is a marginal effect; the input-token cost saving is 10×. 
-If the recency effect is genuinely needed, duplicate a one-line 
-personality reminder at the very end of the dynamic suffix; the 
-duplication costs a few tokens but the prefix stays cacheable.
+This ordering conflicts with the v2 convention of putting 
+personality/tone at the end for recency bias on vocal delivery. 
+Both effects are real:
+- Recency bias on tonality is measurable on sessions > 3 min in 
+  voice contexts (NOT marginal).
+- Cache reduction is 10× on text tokens (and 80× on audio tokens 
+  for gpt-realtime-2).
+
+The default recommendation is the HYBRID: place the full 
+personality section in the static prefix AND duplicate a condensed 
+2-3 line tonality reminder at the very end of the dynamic suffix. 
+The duplication costs ~30 tokens per call but preserves both cache 
+and recency. See `references/prefix-caching.md` for the full 
+rationale.
 
 Audit the builder for cache killers in the static prefix:
 - Date/time interpolation
@@ -176,8 +183,8 @@ Audit the builder for cache killers in the static prefix:
   or move it)
 
 The migrated builder MUST emit a hidden boundary marker between 
-the two zones (e.g. an HTML comment `<!-- DYNAMIC SECTIONS BELOW -->`) 
-so a snapshot test can pin the bytes of the static prefix.
+the two zones (e.g. an HTML comment or a zero-width space character 
+(`​`)) so a snapshot test can pin the bytes of the static prefix.
 
 See `references/prefix-caching.md` for the full mechanism, the 
 killer audit list, and the cached-ratio targets to verify in 

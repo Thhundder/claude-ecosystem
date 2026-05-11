@@ -14,8 +14,8 @@ Implications:
 
 1. **There is no `instructions_stable` / `instructions_variable` split** in the API. You send one string. Caching is invisible and automatic.
 2. **The first byte that differs ends the cache hit.** A single newline drift, a date, a session ID, or a non-deterministic dict iteration order placed early in the prompt **destroys the entire cache for that call**.
-3. **Minimum cacheable prefix is ~1024 tokens** (provider-defined threshold). Shorter prompts get no cache benefit.
-4. **TTL ~1 hour** since the last hit. Steady traffic keeps the cache warm; sporadic calls don't.
+3. **Minimum cacheable prefix: ~1024 tokens for OpenAI input caching** (verified for GPT-4o family; not explicitly documented for `gpt-realtime-2` but appears to use the same threshold empirically). Prompts with a stable prefix shorter than ~1024 tokens get no cache benefit. For voice agents this is rarely a constraint — even minimal v2-ready prompts run 1500–3000 tokens.
+4. **TTL: OpenAI does not publicly document the exact cache lifetime for Realtime / Chat Completions input caching.** Empirically, the cache appears to evict within 5–15 minutes of inactivity. Steady traffic keeps the prefix warm; long gaps between calls require a fresh cache write (billed at full input rate, no surcharge unlike Anthropic). Plan for the cache to be a "warm window" optimization, not a long-term store.
 5. **Per-organization, per-API-key.** The cache is not shared across orgs.
 
 ---
@@ -58,15 +58,61 @@ Concretely, group sections into two zones in the builder:
 
 ---
 
-## Tension with v2 "personality at end for recency"
+## Tension réelle entre caching et recency-bias tonality
 
-The v2 prompting guide commonly recommends placing **personality / tone / sample phrases at the end** of the prompt for recency bias on tonality. This conflicts with cache ordering when those static sections sit *after* dynamic sections.
+OpenAI's v2 prompting guide recommends placing personality / tone sections at the END of the prompt to benefit from recency bias on vocal delivery. This conflicts with cache ordering, since these sections are static and should sit in the prefix.
 
-**Resolution:**
+Both effects are real, not theoretical:
 
-- For prompts assembled dynamically and called at scale, **caching wins**. Move personality/tone/style to the static prefix at the top. The recency bias on tonality is a marginal effect; the cost saving on input tokens is 10× and measurable.
-- For one-shot prompts (single call, no dynamic axes), recency ordering is fine — there is nothing to cache.
-- If you genuinely need recency-bias personality AND have a cached dynamic prompt, **duplicate** the personality reminder as a single line at the very end of the dynamic suffix. The duplication costs a few tokens; the prefix stays cacheable.
+- Recency bias on tonality: measurable on sessions > 3 min, especially in voice contexts where prosody drift is audible.
+- Cache cost reduction: 10× on input tokens (80× on audio input), immediate ROI from the second call onward.
+
+The recommended resolution is a HYBRID:
+
+1. Place the FULL personality / tone / sample phrases section in the static prefix (cacheable).
+2. Append a CONDENSED 2-3 line tonality reminder at the very end of the dynamic suffix, e.g.:
+
+   `Reminder: speak warmly, conversationally, in 2-3 short sentences max. Vary your phrasing across turns.`
+
+The duplication costs ~30 tokens per call (negligible) but preserves both the cache hit and the recency anchor on tone.
+
+If you DON'T do the duplication and put personality only in the prefix, expect measurable tonality drift on sessions > 5 min. Test this on your own use case before deciding.
+
+---
+
+## OpenAI Realtime API pricing impact
+
+For gpt-realtime-2 specifically, the cache ratio is much more favorable than text-only models:
+
+| Token type    | Full rate    | Cached rate    | Ratio |
+|---------------|--------------|----------------|-------|
+| Audio input   | $32 / 1M     | $0.40 / 1M     | 80×   |
+| Text input    | $4 / 1M      | $0.40 / 1M     | 10×   |
+| Audio output  | $64 / 1M     | (not cached)   | —     |
+
+The system prompt is text, so the 10× ratio applies to it. On voice agents, the system prompt is typically the LARGEST text input on every call (the conversation grows but each turn adds little text). Caching the system prompt prefix typically reduces total input cost by 60-80%.
+
+Source: https://openai.com/api/pricing/ (verified for gpt-realtime-2 on 2026-05-08 launch).
+
+---
+
+## How caching applies to Realtime API specifically
+
+Realtime API has a unique session model: the system prompt is sent ONCE per WebSocket session via `session.update.session.instructions`. Within a single session, the prompt is not re-sent on every `response.create` — the model already has it loaded.
+
+This means caching plays out between SESSIONS, not within them:
+
+- Each new phone call = new WebSocket = new session.update with instructions.
+- If the previous call (same or different caller) used the same static prefix < 5-15 min ago, OpenAI detects the common prefix and bills the matching tokens at the cached rate.
+- Active hours (peak booking times) keep the prefix warm. Off-hours pay the full rate on the first call after a gap.
+
+Implication for traffic patterns:
+
+- High-volume voice agents (50+ calls/hour) → near-constant cache hit → maximum savings.
+- Low-volume agents (5 calls/day, spaced out) → mostly full-rate writes, minimal cache benefit.
+- Bursty traffic (many calls during 12-2pm, few elsewhere) → excellent caching during bursts.
+
+Measure cached_tokens in production over 1 week to know your actual cache hit ratio before optimizing further.
 
 ---
 
@@ -119,6 +165,12 @@ def test_static_prefix_is_byte_stable():
 
 The boundary marker can be a hidden HTML comment (`<!-- DYNAMIC SECTIONS BELOW -->`) emitted by the builder between zones. It costs ~10 tokens but makes the test mechanical.
 
+Alternative implementation: use a zero-width space (`​`) instead of an HTML comment as the boundary marker. The model sees no visible content (the tokenizer typically encodes zero-width spaces as a single negligible token), but the test code can still split on the marker. Cleaner than embedding an HTML comment that the model could theoretically interpret literally — though in practice both approaches work fine.
+
+```python
+STATIC_DYNAMIC_BOUNDARY_MARKER = "​"  # zero-width space, invisible to the model
+```
+
 ---
 
 ## Quick checklist for the migration
@@ -129,8 +181,9 @@ When restructuring a dynamically-assembled prompt for v2, run this checklist:
 - [ ] All sections in `STATIC_SECTIONS` are byte-identical across every code path (proven by snapshot test)
 - [ ] No date/time/ID/tenant string is interpolated into any static section
 - [ ] All set/dict iterations in the prefix use `sorted(...)` for deterministic order
-- [ ] `Personality`, `Tone`, `Sample Phrases` are in the static prefix (with optional 1-line recency reminder at the very end of the dynamic suffix)
+- [ ] `Personality`, `Tone`, `Sample Phrases` are in the static prefix AND a condensed 2-3 line tonality reminder is duplicated at the very end of the dynamic suffix (HYBRID — see "Tension réelle..." section)
 - [ ] Tool docs go in the dynamic suffix (different per feature combo)
 - [ ] Conversation State Block content goes in the dynamic suffix (varies with feature flags)
 - [ ] A unit test asserts the static prefix hash
 - [ ] Production logs report `cached_tokens` and a dashboard tracks the cache hit ratio
+- [ ] Alert configured: cache_hit_ratio < 50% sustained over 30 min triggers a Slack notification (indicates either a cache killer regression OR traffic dropped below cache-warm threshold)
