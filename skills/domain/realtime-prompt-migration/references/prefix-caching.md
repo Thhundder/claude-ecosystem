@@ -152,6 +152,8 @@ Use the `cached_tokens` field as a regression metric: if a PR drops your cache h
 For any builder, add a unit test that pins the byte content of the static prefix:
 
 ```python
+from hashlib import sha256
+
 def test_static_prefix_is_byte_stable():
     """Whatever is rendered before the first dynamic section must be invariant.
     A failing assertion here means a recent change introduced cache drift.
@@ -159,7 +161,7 @@ def test_static_prefix_is_byte_stable():
     expected cache hit rate impact is acceptable."""
     rendered = build_prompt(features=set(), pronunciations=(), has_lang_lock=False)
     static_prefix, _ = rendered.split(STATIC_DYNAMIC_BOUNDARY_MARKER, 1)
-    expected_hash = "sha256:..."
+    expected_hash = "REPLACE_WITH_ACTUAL_SHA256_HEXDIGEST_64_CHARS"
     assert sha256(static_prefix.encode()).hexdigest() == expected_hash
 ```
 
@@ -168,7 +170,7 @@ The boundary marker can be a hidden HTML comment (`<!-- DYNAMIC SECTIONS BELOW -
 Alternative implementation: use a zero-width space (`​`) instead of an HTML comment as the boundary marker. The model sees no visible content (the tokenizer typically encodes zero-width spaces as a single negligible token), but the test code can still split on the marker. Cleaner than embedding an HTML comment that the model could theoretically interpret literally — though in practice both approaches work fine.
 
 ```python
-STATIC_DYNAMIC_BOUNDARY_MARKER = "​"  # zero-width space, invisible to the model
+STATIC_DYNAMIC_BOUNDARY_MARKER = "\u200B"  # zero-width space, invisible to the model
 ```
 
 ---

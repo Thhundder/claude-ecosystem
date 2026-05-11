@@ -184,7 +184,7 @@ Audit the builder for cache killers in the static prefix:
 
 The migrated builder MUST emit a hidden boundary marker between 
 the two zones (e.g. an HTML comment or a zero-width space character 
-(`​`)) so a snapshot test can pin the bytes of the static prefix.
+(`\u200B`)) so a snapshot test can pin the bytes of the static prefix.
 
 See `references/prefix-caching.md` for the full mechanism, the 
 killer audit list, and the cached-ratio targets to verify in 
