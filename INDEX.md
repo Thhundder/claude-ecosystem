@@ -278,6 +278,12 @@ TRIGGER: 'RAG', 'retrieval', 'vector search', 'embedding', 'chunk', ChromaDB/Pin
 SKIP: simple keyword search, static docs lookup (use documentation-lookup), non-AI projects, library docs (use Context7)
 Desc: building, debugging, or reviewing RAG (Retrieval-Augmented Generation) pipelines — separating ingestion/retrieval/generation, chunking, embeddings, hybrid search, reranking, evals
 
+### `realtime-prompt-migration` · domain · per-project · origin: ECC
+Path: `skills/domain/realtime-prompt-migration/SKILL.md`
+TRIGGER: migrating a voice agent prompt from `gpt-realtime-1.5` to `gpt-realtime-2`, "the agent confirms everything since the model bump", auditing a voice prompt for v2 compatibility, restructuring a flat voice prompt into v2 canonical sections, adding v2 features (preambles, reasoning effort, channels, entity capture, tool eagerness)
+SKIP: non-Realtime prompts, plain chat prompts, generic prompt-engineering work (use prompt-optimizer)
+Desc: migrate OpenAI Realtime voice prompts to gpt-realtime-2 — diagnose hard-constraint overuse and missing canonical sections, run validation scripts, produce restructured prompt with preambles/entity capture/language locking
+
 ### `voice-ai-best-practices` · domain · per-project · origin: ECC
 Path: `skills/domain/voice-ai-best-practices/SKILL.md`
 TRIGGER: 'voice agent', 'call control', 'realtime API', PCMU/PCMA, WebSocket audio streaming, Telnyx/Twilio/Vapi/LiveKit/Pipecat, voice latency tuning, STT/TTS pipeline
