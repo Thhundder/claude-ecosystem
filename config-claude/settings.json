@@ -73,7 +73,15 @@
       "Bash(git clone:*)",
       "Bash(git add:*)",
       "Bash(git restore:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(sftp:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(ssh-add:*)",
+      "Bash(ssh-copy-id:*)",
+      "Bash(ssh-keyscan:*)",
+      "Bash(ssh-agent:*)"
     ],
     "deny": [
       "Bash(npm:*)",
@@ -105,5 +113,12 @@
     ]
   },
   "effortLevel": "high",
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(ssh xeko-staging-*:*)",
+      "Bash(ssh xeko-staging-*) — read-only inspection of staging hosts (logs, ps, ls, journalctl, docker logs, tail, cat, grep). Owned by the user."
+    ]
+  }
 }
