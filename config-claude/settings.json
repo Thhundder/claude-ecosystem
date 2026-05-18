@@ -83,9 +83,7 @@
     ],
     "ask": [
       "Bash(rm -rf:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git reset --hard:*)"
     ],
     "defaultMode": "auto"
   },
@@ -97,6 +95,10 @@
           {
             "type": "command",
             "command": "cmd=$(jq -r '.tool_input.command // empty'); if echo \"$cmd\" | grep -qE -- '(--no-verify|--no-gpg-sign)'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Hook bypass forbidden (--no-verify / --no-gpg-sign). Fix the underlying issue instead.\"}}'; fi"
+          },
+          {
+            "type": "command",
+            "command": "/home/thundder/.claude/hooks/git-branch-guard.sh"
           }
         ]
       }
