@@ -118,7 +118,10 @@
     "allow": [
       "$defaults",
       "Bash(ssh xeko-staging-*:*)",
-      "Bash(ssh xeko-staging-*) — read-only inspection of staging hosts (logs, ps, ls, journalctl, docker logs, tail, cat, grep). Owned by the user."
+      "Bash(ssh xeko-staging-*) — read-only inspection of staging hosts (logs, ps, ls, journalctl, docker logs, tail, cat, grep). Owned by the user.",
+      "Bash(ssh xeko-backend-prod:*)",
+      "Bash(ssh xeko-crawler-prod:*)",
+      "Bash(ssh xeko-backend-prod) / Bash(ssh xeko-crawler-prod) — full command access on the user's own production hosts (xeko-backend-prod, xeko-crawler-prod). Explicitly authorized by the user."
     ]
   }
 }
