@@ -17,7 +17,7 @@ Works in any directory (project or not). Detect context:
 ```bash
 CWD=$(pwd)
 IN_PROJECT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-IN_ECOSYSTEM=$([ "$IN_PROJECT" = "/home/thundder/Documents/claude-ecosystem" ] && echo "yes" || echo "no")
+IN_ECOSYSTEM=$([ "$IN_PROJECT" = "$HOME/Documents/claude-ecosystem" ] && echo "yes" || echo "no")
 ```
 
 Context matters for Phase 4 (install options):

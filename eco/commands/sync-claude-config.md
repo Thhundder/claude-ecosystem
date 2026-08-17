@@ -12,6 +12,7 @@ Sync the user-level Claude Code config between the live location (`~/.claude/`) 
 - `CLAUDE.md`
 - `settings.json`
 - `.mcp.json`
+- `hooks/` — the scripts `settings.json` invokes by path
 
 ## What it does NOT touch
 
@@ -44,6 +45,11 @@ case "$MODE" in
         echo "  ✗ $f missing in $LIVE"
       fi
     done
+    if [ -d "$LIVE/hooks" ]; then
+      mkdir -p "$REPO/hooks" && cp "$LIVE/hooks/"* "$REPO/hooks/" && echo "  ✓ hooks/"
+    else
+      echo "  ✗ hooks/ missing in $LIVE"
+    fi
     echo
     echo "Done. Review the diff in $REPO and commit manually."
     ;;
@@ -56,6 +62,11 @@ case "$MODE" in
         echo "  ✗ $f missing in $REPO"
       fi
     done
+    if [ -d "$REPO/hooks" ]; then
+      mkdir -p "$LIVE/hooks" && cp "$REPO/hooks/"* "$LIVE/hooks/" && chmod +x "$LIVE/hooks/"*.sh && echo "  ✓ hooks/"
+    else
+      echo "  ✗ hooks/ missing in $REPO"
+    fi
     echo
     echo "Done. Reload hooks if needed (open /hooks or restart the session)."
     ;;

@@ -14,7 +14,7 @@ Only activate when the current working directory is the `claude-ecosystem` repo 
 
 ```bash
 git rev-parse --show-toplevel
-# expect: /home/thundder/Documents/claude-ecosystem (or your equivalent)
+# expect: $HOME/Documents/claude-ecosystem
 ```
 
 If not in the ecosystem repo → stop and report.

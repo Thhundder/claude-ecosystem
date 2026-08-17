@@ -14,6 +14,7 @@ Only the *configurable* entries — things that can be regenerated from this rep
 - `~/.claude/CLAUDE.md` (restored from `config-claude/CLAUDE.md`)
 - `~/.claude/settings.json` (restored from `config-claude/settings.json`)
 - `~/.claude/.mcp.json` (restored from `config-claude/.mcp.json`)
+- `~/.claude/hooks/` (restored from `config-claude/hooks/`, re-marked executable)
 - `~/.claude/agents/` (recreated as symlinks to `agents/*.md`)
 - `~/.claude/commands/` (recreated as symlinks — non-eco + ecosystem-sync toolbelt)
 - `~/.claude/skills/` (recreated as symlinks to universal skills only)
@@ -86,6 +87,11 @@ cp "$ECO/config-claude/CLAUDE.md" ~/.claude/CLAUDE.md
 cp "$ECO/config-claude/settings.json" ~/.claude/settings.json
 cp "$ECO/config-claude/.mcp.json" ~/.claude/.mcp.json
 
+# Hook scripts — settings.json references them by path, so they must exist
+mkdir -p ~/.claude/hooks
+cp "$ECO/config-claude/hooks/"* ~/.claude/hooks/
+chmod +x ~/.claude/hooks/*.sh
+
 # Recreate symlinks for tool directories
 mkdir -p ~/.claude/agents ~/.claude/commands ~/.claude/skills
 
@@ -138,6 +144,7 @@ echo "Reset complete."
 echo "  agents: $(ls ~/.claude/agents/ | wc -l)"
 echo "  commands: $(ls ~/.claude/commands/ | wc -l)"
 echo "  skills: $(ls ~/.claude/skills/ | wc -l)"
+echo "  hooks: $(ls ~/.claude/hooks/ | wc -l)"
 echo "Backup kept at $BACKUP"
 echo "Restart Claude Code (or open /hooks) so the new settings.json is loaded."
 ```

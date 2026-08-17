@@ -13,14 +13,14 @@
       "Write(.claude/**)",
       "Edit(**/.claude/**)",
       "Write(**/.claude/**)",
-      "Edit(/home/thundder/.claude/**)",
-      "Write(/home/thundder/.claude/**)",
-      "Edit(/home/thundder/Documents/**/.claude/**)",
-      "Write(/home/thundder/Documents/**/.claude/**)",
-      "Edit(//home/thundder/.claude/**)",
-      "Write(//home/thundder/.claude/**)",
-      "Edit(//home/thundder/Documents/**/.claude/**)",
-      "Write(//home/thundder/Documents/**/.claude/**)",
+      "Edit(~/.claude/**)",
+      "Write(~/.claude/**)",
+      "Edit(~/Documents/**/.claude/**)",
+      "Write(~/Documents/**/.claude/**)",
+      "Edit(~//.claude/**)",
+      "Write(~//.claude/**)",
+      "Edit(~//Documents/**/.claude/**)",
+      "Write(~//Documents/**/.claude/**)",
       "Grep",
       "Glob",
       "WebSearch",
@@ -107,7 +107,7 @@
           },
           {
             "type": "command",
-            "command": "/home/thundder/.claude/hooks/git-branch-guard.sh"
+            "command": "\"$HOME\"/.claude/hooks/git-branch-guard.sh"
           }
         ]
       }
