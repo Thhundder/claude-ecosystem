@@ -1,0 +1,4 @@
+agents|agents/review/silent-failure-hunter.md|silent-failure-hunter.md
+agents|agents/review/security-reviewer.md|security-reviewer.md
+agents|agents/review/bug-validator.md|bug-validator.md
+commands|eco/commands/sync-claude-config.md|sync-claude-config.md

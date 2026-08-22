@@ -1,86 +1,86 @@
 ---
-description: Mirror user-level Claude config (~/.claude/) to or from this repo's config-claude/ snapshot. Usage — /sync-claude-config push (repo ← live) or /sync-claude-config pull (live ← repo).
+description: Miroir de la configuration Claude entre ~/.claude/ et config-claude/ dans ce dépôt. Usage — /sync-claude-config push (dépôt ← machine) ou pull (machine ← dépôt).
 argument-hint: push | pull
 ---
 
 # /sync-claude-config
 
-Sync the user-level Claude Code config between the live location (`~/.claude/`) and this repo's snapshot (`~/Documents/claude-ecosystem/config-claude/`).
+## Ce qui est synchronisé
 
-## What it syncs
+| Élément | Pourquoi |
+| --- | --- |
+| `CLAUDE.md` | la doctrine |
+| `settings.json` | permissions, hooks, style, indicateur |
+| `lentilles.md` | catalogue de vérification |
+| `output-styles/` | le style qui porte la méthode |
+| `hooks/` | ce que `settings.json` appelle par chemin |
+| `bin/` | ce que les hooks et l'indicateur appellent par chemin |
+| `installe.txt` | **la liste de ce qui est installé** — sans elle une restauration ne réinstalle rien |
 
-- `CLAUDE.md`
-- `settings.json`
-- `.mcp.json`
-- `hooks/` — the scripts `settings.json` invokes by path
+## Ce qui n'est jamais touché
 
-## What it does NOT touch
+Les identifiants d'authentification, l'état d'exécution (sessions, historique, projets), les
+réglages locaux propres à la machine, le socle de rendu sous `lib/` — une dépendance se
+réinstalle, elle ne se recopie pas — et le fichier de configuration racine, qui porte des clés.
 
-- `.credentials.json` — Anthropic auth
-- `projects/`, `sessions/`, `history.jsonl`, `file-history/`, `ide/`, `shell-snapshots/` — runtime state
-- `settings.local.json` — per-user local overrides (keep it machine-specific)
-
-## Usage
-
-```
-/sync-claude-config push      # ~/.claude/ → config-claude/  (you edited the live config, persist it)
-/sync-claude-config pull      # config-claude/ → ~/.claude/  (restore from repo on a fresh machine)
-```
-
-## Execution (run the Bash block below, honor $ARGUMENTS)
+## Exécution
 
 ```bash
 MODE="$ARGUMENTS"
 LIVE=~/.claude
 REPO=~/Documents/claude-ecosystem/config-claude
-FILES=(CLAUDE.md settings.json .mcp.json)
+ECO=~/Documents/claude-ecosystem
+FICHIERS=(CLAUDE.md settings.json lentilles.md)
+DOSSIERS=(hooks bin output-styles)
 
 case "$MODE" in
   push)
-    echo "Pushing live → repo"
-    for f in "${FILES[@]}"; do
-      if [ -f "$LIVE/$f" ]; then
-        cp "$LIVE/$f" "$REPO/$f" && echo "  ✓ $f"
-      else
-        echo "  ✗ $f missing in $LIVE"
-      fi
+    echo "machine -> depot"
+    for f in "${FICHIERS[@]}"; do
+      [ -f "$LIVE/$f" ] && { cp "$LIVE/$f" "$REPO/$f"; echo "  ok  $f"; } || echo "  -- $f absent"
     done
-    if [ -d "$LIVE/hooks" ]; then
-      mkdir -p "$REPO/hooks" && cp "$LIVE/hooks/"* "$REPO/hooks/" && echo "  ✓ hooks/"
-    else
-      echo "  ✗ hooks/ missing in $LIVE"
-    fi
-    echo
-    echo "Done. Review the diff in $REPO and commit manually."
+    for d in "${DOSSIERS[@]}"; do
+      [ -d "$LIVE/$d" ] || { echo "  -- $d/ absent"; continue; }
+      rm -rf "${REPO:?}/$d"; mkdir -p "$REPO/$d"; cp -r "$LIVE/$d/." "$REPO/$d/"
+      find "$REPO/$d" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null
+      echo "  ok  $d/ ($(ls "$LIVE/$d" | wc -l) fichiers)"
+    done
+    : > "$REPO/installe.txt"
+    for k in agents skills commands; do
+      for l in $(find "$LIVE/$k" -mindepth 1 -maxdepth 1 2>/dev/null); do
+        cible="$(readlink -f "$l")"
+        case "$cible" in "$ECO"/*) echo "$k|${cible#$ECO/}|$(basename "$l")" >> "$REPO/installe.txt" ;; esac
+      done
+    done
+    echo "  ok  installe.txt ($(wc -l < "$REPO/installe.txt") entrees)"
+    [ -f "$REPO/.mcp.json" ] && { rm -f "$REPO/.mcp.json"; echo "  --  .mcp.json retire"; }
+    echo; echo "Relire le diff dans $REPO, puis enregistrer."
     ;;
+
   pull)
-    echo "Pulling repo → live"
-    for f in "${FILES[@]}"; do
-      if [ -f "$REPO/$f" ]; then
-        cp "$REPO/$f" "$LIVE/$f" && echo "  ✓ $f"
-      else
-        echo "  ✗ $f missing in $REPO"
-      fi
+    echo "depot -> machine"
+    for f in "${FICHIERS[@]}"; do
+      [ -f "$REPO/$f" ] && { cp "$REPO/$f" "$LIVE/$f"; echo "  ok  $f"; } || echo "  -- $f absent du depot"
     done
-    if [ -d "$REPO/hooks" ]; then
-      mkdir -p "$LIVE/hooks" && cp "$REPO/hooks/"* "$LIVE/hooks/" && chmod +x "$LIVE/hooks/"*.sh && echo "  ✓ hooks/"
+    for d in "${DOSSIERS[@]}"; do
+      [ -d "$REPO/$d" ] || { echo "  -- $d/ absent du depot"; continue; }
+      mkdir -p "$LIVE/$d"; cp -r "$REPO/$d/." "$LIVE/$d/"; chmod +x "$LIVE/$d"/* 2>/dev/null
+      echo "  ok  $d/"
+    done
+    if [ -f "$REPO/installe.txt" ]; then
+      for k in agents skills commands; do mkdir -p "$LIVE/$k"; done
+      n=0
+      while IFS='|' read -r k rel nom; do
+        [ -n "$k" ] || continue
+        ln -sfn "$ECO/$rel" "$LIVE/$k/$nom" && n=$((n+1))
+      done < "$REPO/installe.txt"
+      echo "  ok  $n artefact(s) reinstalles"
     else
-      echo "  ✗ hooks/ missing in $REPO"
+      echo "  -- installe.txt absent : rien n'a ete reinstalle"
     fi
-    echo
-    echo "Done. Reload hooks if needed (open /hooks or restart the session)."
+    echo; echo "Reste a la main : bun add playwright-core dans ~/.claude/lib ; outils jq, chrome, node, bun, python3."
     ;;
-  *)
-    echo "Usage: /sync-claude-config [push|pull]"
-    echo "  push: ~/.claude/ → config-claude/ (persist live edits into the repo)"
-    echo "  pull: config-claude/ → ~/.claude/ (restore from repo on a new machine)"
-    exit 1
-    ;;
+
+  *) echo "Usage : /sync-claude-config [push|pull]"; exit 1 ;;
 esac
 ```
-
-## Notes
-
-- The command does NOT commit the diff after `push`. Run `git status` / `git commit` manually in the ecosystem repo.
-- Symlinks in `~/.claude/agents/`, `/skills/`, `/commands/` point into the ecosystem so they're already versioned — they don't need syncing.
-- To back up before a risky pull: `cp -r ~/.claude ~/.claude-backup-$(date +%F)`.
