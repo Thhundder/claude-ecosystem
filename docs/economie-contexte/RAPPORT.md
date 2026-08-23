@@ -190,10 +190,26 @@ quel.
 réutilise un fragment d'au moins 12 caractères présent dans le résultat de k. Sur 60 agents et
 2 658 paires de tours consécutifs (`mesures/indep.py`) : **53 % des paires ne réutilisent rien**.
 
-**Ce chiffre est un majorant, et il faut le dire.** L'absence de reprise textuelle ne prouve pas
-l'indépendance : un agent peut décider de son geste suivant après avoir lu un résultat sans en
-citer un mot. Le gain de 29,7 % au taux de 53 % est donc un plafond ; **13,6 % au taux de 25 %
-est le chiffre sur lequel s'engager.**
+**Le critère a été durci, parce qu'il pouvait manquer une dépendance silencieuse** : un agent peut
+lire un résultat, changer de direction, sans en citer un mot — mais sa réflexion, elle, le dirait.
+Le second passage classe dépendante toute paire dont la commande **ou le bloc de réflexion** du
+tour k+1 reprend un fragment du résultat de k (`mesures/indep2.py`) :
+
+| Paire de tours consécutifs | Part |
+| --- | --- |
+| Dépendante — la **commande** reprend le résultat précédent | 49 % |
+| Dépendante — la **réflexion** le reprend | **0,1 %** (3 paires sur 2 527) |
+| **Indépendante — groupable** | **51 %** |
+| — dont **aucune réflexion écrite** entre les deux tours | **50 %** |
+
+**Le durcissement n'a rien changé : 3 paires sur 2 527.** Et la moitié des paires sont des
+enchaînements où l'agent n'a pas écrit un mot entre deux commandes — l'indépendance la plus sûre
+qu'on puisse observer sans relire chaque cas à la main.
+
+**Les 49 % dépendantes ne sont pas une perte : elles ne sont simplement pas groupées.** Le taux
+prudent de 25 % retenu au §2 est la moitié de ce que la mesure autorise. Le majorant reste un
+majorant — 29,7 % au taux de 53 % est un plafond, **13,6 % au taux de 25 % est le chiffre sur
+lequel s'engager.**
 
 **Ce que le groupage ne change pas** : la matière obtenue est identique — mêmes commandes,
 mêmes octets. La seule faculté perdue est l'adaptation de la commande k+1 au résultat de k, et
