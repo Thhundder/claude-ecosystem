@@ -13,25 +13,42 @@ R = os.path.expanduser('~/.claude/projects')
 PRIX = dict(sortie=5.0, entree=1.0, cache_ecrit=1.25, cache_lu=0.1)
 
 def mesurer(p):
-    a = collections.Counter(); appels = 0; res = 0
+    """Un tour = une REQUETE, pas une ligne de transcription.
+
+    Une reponse d'assistant contenant plusieurs blocs — reflexion puis appel d'outil —
+    s'inscrit sur plusieurs lignes portant le MEME releve `usage`. Compter les lignes
+    surcompte d'un facteur 1,92 : 74 tours annonces au lieu de 37, 11 574 M de lecture
+    au lieu de 6 027. Mesure du 2026-08-23, corpus de 1 323 agents.
+
+    Les jetons d'entree se prennent une fois par requete ; la sortie se prend au
+    MAXIMUM des lignes de la requete, la derniere portant le total.
+    """
+    a = collections.Counter(); res = 0
+    reqs = {}; ordre = []
     for l in open(p, errors='replace'):
         try: r = json.loads(l)
         except Exception: continue
         m = r.get('message') or {}
         u = m.get('usage') or {}
         if u:
-            appels += 1
-            a['sortie'] += u.get('output_tokens', 0)
-            a['entree'] += u.get('input_tokens', 0)
-            a['cache_ecrit'] += u.get('cache_creation_input_tokens', 0)
-            a['cache_lu'] += u.get('cache_read_input_tokens', 0)
-            if appels == 1:
-                a['socle'] = u.get('input_tokens',0)+u.get('cache_creation_input_tokens',0)+u.get('cache_read_input_tokens',0)
+            rid = r.get('requestId') or m.get('id')
+            if rid is None: continue
+            if rid not in reqs:
+                reqs[rid] = dict(
+                    entree=u.get('input_tokens', 0),
+                    cache_ecrit=u.get('cache_creation_input_tokens', 0),
+                    cache_lu=u.get('cache_read_input_tokens', 0), sortie=0)
+                ordre.append(rid)
+            reqs[rid]['sortie'] = max(reqs[rid]['sortie'], u.get('output_tokens', 0))
         c = m.get('content')
         if r.get('type') == 'user' and isinstance(c, list):
             res += sum(len(json.dumps(b.get('content',''))) for b in c
                        if isinstance(b, dict) and b.get('type') == 'tool_result') // 4
-    a['appels'] = appels; a['resultats'] = res
+    for i, rid in enumerate(ordre):
+        v = reqs[rid]
+        for k in ('entree', 'cache_ecrit', 'cache_lu', 'sortie'): a[k] += v[k]
+        if i == 0: a['socle'] = v['entree'] + v['cache_ecrit'] + v['cache_lu']
+    a['appels'] = len(ordre); a['resultats'] = res
     return a
 
 def cout(a):

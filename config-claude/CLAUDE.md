@@ -67,6 +67,29 @@ Le contrôle mécanique ne s'applique qu'aux briefs d'agents. Les trois mêmes e
 pour le travail fait dans le fil principal : **à quoi on reconnaît que c'est réussi**, **quand
 on renonce**, et **ce qui a déjà été tenté**. Rien ne les impose ici — c'est à tenir.
 
+## Le coût d'un agent est ce qu'il relit, pas ce qu'il produit
+
+Un agent relit **tout** son contexte à chaque tour. Un jeton placé en tête lui coûte environ
+4,90 unités : 1,25 pour l'écrire, puis 0,10 à chacun des 37 tours. Mesuré sur 1 323 agents :
+la relecture pèse 95 % des jetons, un jeton de résultat est relu 63 fois.
+
+Deux conséquences, opposables dans tout brief d'agent.
+
+- **Aucun appel d'écriture au-delà de 25 000 caractères.** Une génération plus longue dépasse
+  la durée de vie du cache : le tour suivant réécrit tout le contexte à douze fois le prix.
+  Écrire le même fichier en trois appels produit les mêmes octets — vérifié en vol sur
+  185 670 caractères — et vaut 3,5 %.
+- **Deux commandes qui ne dépendent pas l'une de l'autre partent dans le même tour.** Un tour
+  coûte la relecture du contexte entier, que l'appel rende 20 jetons ou 20 000. Gain simulé au
+  taux prudent : 13,6 %. Non-régression établie sur une tâche courte — deux inventaires
+  identiques au caractère près — **mais non vérifiée sur une tâche longue.**
+
+**Un vol se mesure, il ne se suppose pas.** Le coût par unité se prend sur le vol entier
+précédent avant chaque lancement. Un dimensionnement fondé sur un coût six fois trop bas a
+coûté 27 agents pour zéro ligne produite.
+
+Mesure d'un vol : `bin/cout-vol.py --projet <slug>`.
+
 ## Ce qui est mécanisé, et n'a donc pas à être répété
 
 | Mécanisme | Ce qu'il fait |
