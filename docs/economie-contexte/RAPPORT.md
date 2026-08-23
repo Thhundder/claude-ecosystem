@@ -174,20 +174,30 @@ une opération marginale sur un résidu — il est sur le chemin critique de plu
 rendu. Elle n'établit pas le taux de perte réel, qui dépend de la qualité du condensé et ne se
 mesure que par un vol comparatif (§6).
 
-**Une attrition du même ordre est DÉJÀ tolérée en production, et personne ne l'a relevée.**
-Mesure sur disque, 48 sous-points ayant à la fois leurs trois rapports de sonde et leur fichier
-final (`mesures/attrition_strict.py`) : le synthétiseur ne reprend que **33 % des ancres
-opposables** produites par les sondes (p10 0 %, p90 89 %). L'étape de synthèse qui tourne
-aujourd'hui perd donc les deux tiers des ancres de sa matière, sur des fichiers qui passent le
-portier à sept sections sur sept. Cela ne rend pas le condensé sûr — mais cela dit que le seuil
-de qualité du chantier accommode déjà une compression lourde à cet endroit précis.
+**RÉTRACTATION — deux chiffres de la première version de cette section étaient faux.**
+J'y annonçais que le synthétiseur ne reprend que 33 % des ancres opposables de ses sondes, et
+que 43 % des ancres d'un fichier en sont absentes. Les deux venaient d'un **appariement faux** :
+`recuperer-sondes.ts` a écrit sur disque, le 23 août à 09:44, des rapports issus de vols **morts**,
+alors que les fichiers auxquels je les comparais avaient été rédigés jusqu'à onze heures plus tôt
+par d'autres vols. **37 des 49 appariements sont invalides** — la sonde est postérieure au fichier
+qu'elle est censée avoir produit. Ce qui manquait au moment de l'affirmation : un contrôle de date,
+qui coûte une ligne. Commande de contrôle : `mesures/appariement.py`.
 
-**CONSTAT, hors de mon mandat mais trouvé en chemin : 43 % des ancres opposables d'un fichier de
-sous-point sont absentes des trois rapports de sonde dont il est issu** (médiane sur les mêmes
-48 fichiers). Trois explications possibles et non départagées : reformatage d'URL, ancre
-re-dérivée d'une source citée autrement, ou ancre fabriquée. **ESCALADE :** un comptage par
-famille d'ancre (dépôt / RFC / URL) tranche en une mesure ; tant qu'il n'est pas fait, le chiffre
-ne dit pas lequel des trois. Il ne remet pas en cause les économies de ce rapport.
+**Sur les 12 appariements valides**, l'attrition réelle est bien moindre :
+
+| Mesure | Chiffre faux publié | **Chiffre corrigé** |
+| --- | --- | --- |
+| Ancres opposables des sondes reprises dans le fichier | 33 % | **68 %** (min 42, max 89) |
+| Ancres du fichier absentes des sondes | 43 % | **25 %** |
+
+**Conséquence, et elle est défavorable au condensé.** L'argument que je tirais de ces chiffres —
+« la production tolère déjà une perte des deux tiers » — **tombe**. L'étape de synthèse conserve
+en réalité plus des deux tiers de ses ancres. Le chantier est donc **moins tolérant** à la
+compression que je ne l'avais écrit, et le condensé à mi-parcours n'a pas de précédent rassurant.
+
+Les 25 % d'ancres du fichier absentes des sondes restent un écart, mais un écart ordinaire pour
+un agent qui lit aussi `ONTOLOGIE.md` et les annexes : le comptage par famille
+(`mesures/familles.py`) montre que RFC et URL en forment l'essentiel.
 
 **Un précédent existe, et il est favorable.** `p1-synthese.js` fait déjà travailler un agent sur
 la sortie condensée d'autres agents plutôt que sur la matière brute : cinq fichiers de la
