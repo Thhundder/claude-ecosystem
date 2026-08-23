@@ -33,6 +33,16 @@ $tete" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$t}}
     ;;
 
   Stop)
+    # --- cette session a-t-elle REELLEMENT ecrit quelque chose ?
+    # Sans ce filtre, les ecritures d'une autre session travaillant sur le meme
+    # depot etaient attribuees a celle-ci. Quatre declenchements a tort le 23 aout.
+    tr="$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)"
+    if [ -n "$tr" ] && [ -f "$tr" ]; then
+      if ! grep -qE '"name":"(Edit|Write|NotebookEdit)"|"command":"[^"]*([^<]>[^&]|>>|sed -i|tee |mkdir |rm |cp |mv |touch |git (add|commit))' "$tr"; then
+        exit 0
+      fi
+    fi
+
     # --- pas d'interface neuve sans reference visuelle
     if [ ! -f "$C/$sid.front" ]; then
       front="$("$HOME"/.claude/bin/front-seuil.sh "$root" 2>/dev/null)"; code=$?
