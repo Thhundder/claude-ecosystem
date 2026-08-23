@@ -55,9 +55,11 @@ exactement le mécanisme décrit au §2, observé en vol, sur un contrôle qui p
 réécriture : son premier appel faisait **38 424 jetons**, soit 8,9 minutes — au-delà du TTL. Découper
 « en trois » ne borne rien si chaque tiers reste énorme.
 
-**Et normalisé au volume produit, le découpage ne rapporte rien** : 3,4 M par million de caractères
-pour le monobloc contre 3,3 M pour le découpé. L'écart de coût brut (+82 %) vient uniquement de ce
-que l'agent découpé a écrit 1,85 fois plus de texte.
+**Normalisé au volume produit, le découpage rend un peu — pas ce que j'annonçais.** Tailles finales
+rendues par les agents : monobloc **91 942** caractères, découpé **185 670**. Soit **3,71 M par million
+de caractères** pour le monobloc contre **3,34 M** pour le découpé — **10 % de moins**, et non les 5,3 %
+attendus d'une suppression complète des réécritures, puisque le découpé en a subi une lui aussi.
+L'écart de coût brut (+82 %) vient d'abord de ce que l'agent découpé a écrit deux fois plus de texte.
 
 ### Le remède corrigé, et il est mesuré
 
@@ -69,3 +71,13 @@ caractères**. Pour rester avec une marge sous le TTL, un appel d'écriture ne d
 **Conséquence sur le chiffrage** : le gain de 5,3 % du §2 reste celui de la suppression des
 réécritures, il est inchangé. Ce qui change est la consigne : « écris en trois fois » est
 insuffisant et le banc le prouve ; il faut « aucun appel d'écriture au-delà de 25 000 caractères ».
+
+## Ce que le banc a coûté
+
+4 agents, **241 077 jetons de sous-agent**, 24 minutes de mur. Les deux agents de rédaction en
+portent l'essentiel ; les deux agents de groupage ont coûté 0,033 et 0,036 M.
+
+## Banc 2 — les deux inventaires sont identiques au caractère près
+
+Les deux rendus ne diffèrent que par un espace en fin de ligne sur `verifier-portier.ts`.
+La consigne de groupage n'a pas seulement préservé l'exactitude : elle a produit **le même texte**.
