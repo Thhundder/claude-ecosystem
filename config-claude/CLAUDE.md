@@ -67,6 +67,25 @@ Le contrôle mécanique ne s'applique qu'aux briefs d'agents. Les trois mêmes e
 pour le travail fait dans le fil principal : **à quoi on reconnaît que c'est réussi**, **quand
 on renonce**, et **ce qui a déjà été tenté**. Rien ne les impose ici — c'est à tenir.
 
+## Le contexte d'un agent se paie à chaque appel
+
+Un agent relit **tout** son contexte à chaque outil qu'il appelle. Son coût n'est donc pas ce
+qu'il produit, mais le produit *taille du contexte × nombre d'appels*. Mesuré sur 1 307 agents
+de workflow : socle de 41 000 jetons, 74 appels, **95 % des jetons du projet sont de la relecture**.
+
+Trois conséquences, dans l'ordre de leur poids.
+
+- **Le nombre d'appels multiplie tout.** Passer de 74 à 45 appels retire un tiers du coût, plus
+  que n'importe quelle autre mesure. Un brief qui borne le nombre de lectures vaut mieux qu'un
+  brief court.
+- **Un résultat d'outil se paie autant de fois qu'il reste d'appels.** Lire un fichier entier
+  quand trois lignes suffisent coûte quarante fois le prix de ces trois lignes. La lecture de
+  fichiers pèse 44 % des résultats, à 3 850 jetons l'appel : lire par plage, pas en entier.
+- **Découper un agent en trois ne divise pas par trois** : le socle se paie trois fois. Trois
+  agents de 25 appels coûtent 67 % d'un agent de 74, pas 33 %.
+
+Mesure d'un vol : `bin/cout-vol.py --projet <slug>`.
+
 ## Ce qui est mécanisé, et n'a donc pas à être répété
 
 | Mécanisme | Ce qu'il fait |
