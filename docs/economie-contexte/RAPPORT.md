@@ -303,3 +303,45 @@ points de plus par-dessus les trois autres — le premier gain marginal du dossi
 mesure qu'il faut payer, pas le pari.**
 
 **La piste A est abandonnée** : 0,2 %.
+
+---
+
+## 9. L'impact en quantités réelles
+
+Le poids employé — sortie ×5, entrée ×1, écriture de cache ×1,25, lecture ×0,1 — reproduit
+exactement le rapport des tarifs d'Opus. **Une unité pondérée vaut donc un jeton d'entrée.**
+Sous cette lecture, et elle est signalée comme telle :
+
+| Quantité | Mesure | En dollars |
+| --- | --- | --- |
+| Corpus déjà dépensé (1 323 agents) | 1 170 M | ≈ 17 600 $ |
+| Coût d'un sous-point en vol complet (3 sondes + 1 synthèse) | **4,66 M** | ≈ 70 $ |
+| Les 112 sous-points restants | **522 M** | ≈ 7 800 $ |
+| Ce que les trois leviers en retirent (19,9 %) | **104 M** | ≈ 1 560 $ |
+| Avec le condensé (33,8 %) | 176 M | ≈ 2 640 $ |
+
+Commande : `mesures/impact.py`.
+
+**En fenêtres de quota** — `JOURNAL.md` mesure une fenêtre de session à 17-18 M sur deux
+fenêtres indépendantes : les 112 sous-points restants demandent **29 fenêtres**, et 23 avec les
+trois leviers. **Six fenêtres de moins.**
+
+### CONSTAT — le dimensionnement des vols repose sur un coût par sous-point six fois trop bas
+
+`JOURNAL.md` fixe la règle de dimensionnement à **0,88 M par sous-point**, plafond 15 sous-points
+sur fenêtre neuve. La mesure sur les vols des 22 et 23 août donne **4,66 M**.
+
+L'arithmétique de la même entrée de journal le confirme d'elle-même : elle relève qu'une fenêtre
+de quota vaut 17-18 M **et** qu'un blocage a coûté « 4 sous-points et 18 agents ». 17,5 ÷ 4 = 4,4 M
+par sous-point — la mesure directe, pas 0,88.
+
+**Conséquence** : un vol dimensionné à 15 sous-points prévoit 13 M et en demande **70**. Il meurt
+au quatrième sous-point. C'est le comportement observé — quatre vols arrêtés, 40 agents perdus,
+tous sur rejet de quota explicite.
+
+**Ce constat pèse plus lourd que les économies de ce rapport** : les trois leviers retirent 19,9 %
+d'une facture ; un plafond de vol juste supprime les vols morts, qui coûtent leur prix entier
+pour zéro ligne écrite — le seul vol `wf_4659c272-75d` a brûlé 442,9 M de lecture pour rien.
+
+**SOLUTION** : plafonner un vol à **trois sous-points** sur fenêtre neuve (14 M sur 17-18),
+quatre si la fenêtre est réputée entamée de moins d'un quart.
