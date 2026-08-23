@@ -41,6 +41,15 @@ $tete" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$t}}
       if ! grep -qE '"name":"(Edit|Write|NotebookEdit)"|"command":"[^"]*([^<]>[^&]|>>|sed -i|tee |mkdir |rm |cp |mv |touch |git (add|commit))' "$tr"; then
         exit 0
       fi
+      # ... et qu'elle a ecrit DANS CE DEPOT : au moins un des fichiers modifies
+      # doit apparaitre dans son transcript. Sinon les modifications viennent
+      # d'ailleurs — autre session, editeur, processus de fond.
+      touche=0
+      while IFS= read -r f; do
+        [ -z "$f" ] && continue
+        if grep -qF -- "$f" "$tr"; then touche=1; break; fi
+      done <<< "$(git -C "$root" status --porcelain 2>/dev/null | awk '{print $NF}' | head -60)"
+      [ "$touche" = 0 ] && exit 0
     fi
 
     # --- pas d'interface neuve sans reference visuelle
