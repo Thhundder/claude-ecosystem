@@ -100,8 +100,11 @@ Le cache écrit au début de cette requête a expiré quand la suivante arrive :
 320 000 à 350 000 jetons de contexte à 1,25 au lieu de les lire à 0,10. **29,5 % de tous les
 appels de `Write` sont dans ce cas, contre 0,07 % des appels de `Bash`.**
 
-Le remède ne retire rien : écrire le fichier en trois appels au lieu d'un. Chaque génération
-retombe sous trois minutes. Les deux tours supplémentaires coûtent environ 66 k pondérés par
+Le remède ne retire rien : **borner la taille de chaque appel d'écriture à 25 000 caractères**.
+**Corrigé par le banc d'essai du 23 août** () : « écrire en trois appels » ne
+suffit pas — l'agent découpé a fait un premier appel de 38 424 jetons, 8,9 minutes, et a subi la
+réécriture quand même. Ce qui se borne est la taille, pas le nombre. Débit mesuré 53 jetons/seconde :
+cinq minutes valent 16 000 jetons, soit ~40 000 caractères ; 25 000 laisse la marge. Les deux tours supplémentaires coûtent environ 66 k pondérés par
 agent concerné, contre 379 k récupérés.
 
 **Le groupage.** Les agents émettent **1,25 appel d'outil par tour** — ils ne groupent
