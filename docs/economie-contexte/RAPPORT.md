@@ -174,6 +174,21 @@ une opération marginale sur un résidu — il est sur le chemin critique de plu
 rendu. Elle n'établit pas le taux de perte réel, qui dépend de la qualité du condensé et ne se
 mesure que par un vol comparatif (§6).
 
+**Une attrition du même ordre est DÉJÀ tolérée en production, et personne ne l'a relevée.**
+Mesure sur disque, 48 sous-points ayant à la fois leurs trois rapports de sonde et leur fichier
+final (`mesures/attrition_strict.py`) : le synthétiseur ne reprend que **33 % des ancres
+opposables** produites par les sondes (p10 0 %, p90 89 %). L'étape de synthèse qui tourne
+aujourd'hui perd donc les deux tiers des ancres de sa matière, sur des fichiers qui passent le
+portier à sept sections sur sept. Cela ne rend pas le condensé sûr — mais cela dit que le seuil
+de qualité du chantier accommode déjà une compression lourde à cet endroit précis.
+
+**CONSTAT, hors de mon mandat mais trouvé en chemin : 43 % des ancres opposables d'un fichier de
+sous-point sont absentes des trois rapports de sonde dont il est issu** (médiane sur les mêmes
+48 fichiers). Trois explications possibles et non départagées : reformatage d'URL, ancre
+re-dérivée d'une source citée autrement, ou ancre fabriquée. **ESCALADE :** un comptage par
+famille d'ancre (dépôt / RFC / URL) tranche en une mesure ; tant qu'il n'est pas fait, le chiffre
+ne dit pas lequel des trois. Il ne remet pas en cause les économies de ce rapport.
+
 **Un précédent existe, et il est favorable.** `p1-synthese.js` fait déjà travailler un agent sur
 la sortie condensée d'autres agents plutôt que sur la matière brute : cinq fichiers de la
 branche 12 écrits ainsi sont **tous plus gros** que les trois fichiers de la même branche issus
