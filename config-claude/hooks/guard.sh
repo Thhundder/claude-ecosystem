@@ -99,9 +99,14 @@ if has '(^|[^A-Za-z0-9_-])git[[:space:]]+([^|;&]*[[:space:]])?(commit|push)([^A-
     "$HOME"/Documents/Xeko/*)
       branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
       target=""
-      if has '(^|[^A-Za-z0-9_/-])(dev|main)([^A-Za-z0-9_/-]|$)'; then
-        target="$(printf '%s' "$cmd" | grep -oE '(^|[^A-Za-z0-9_/-])(dev|main)([^A-Za-z0-9_/-]|$)' | grep -oE '(dev|main)' | head -1)"
+      # On ne cherche la branche visee QUE dans la commande de publication elle-meme.
+      # Chercher le mot partout attrapait « reemis a la main » dans une note de travail
+      # et bloquait un enregistrement sur une branche de travail. Mesure du 2026-08-23.
+      pousse="$(printf '%s' "$cmd" | grep -oE 'git[[:space:]]+[^|;&]*push[^|;&]*' || true)"
+      if [ -n "$pousse" ]; then
+        target="$(printf '%s' "$pousse" | grep -oE '(^|[^A-Za-z0-9_/-])(dev|main)([^A-Za-z0-9_/-]|$)' | grep -oE '(dev|main)' | head -1)"
       fi
+      # Un enregistrement se fait sur la branche courante : le texte du message ne compte pas.
       case "${branch:-}" in dev|main) target="$branch" ;; esac
       [ -n "$target" ] && decide ask "Depot d'entreprise $(basename "$root"), branche partagee $target. Confirme, ou bascule sur une branche de travail."
       ;;
