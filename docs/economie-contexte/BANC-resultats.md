@@ -81,3 +81,51 @@ portent l'essentiel ; les deux agents de groupage ont coûté 0,033 et 0,036 M.
 
 Les deux rendus ne diffèrent que par un espace en fin de ligne sur `verifier-portier.ts`.
 La consigne de groupage n'a pas seulement préservé l'exactitude : elle a produit **le même texte**.
+
+---
+
+# Banc 2 — le groupage sur une tâche longue de type sonde
+
+Vols `wf_03139d38-bdd` (1 paire) et `wf_3c48c6ee-220` (3 paires). **Quatre paires, huit agents**,
+490 826 jetons, neuf minutes de mur au total.
+
+Tâche identique pour les huit : décrire la synchronisation IMAP incrémentale de Roundcube sur le
+clone réel au SHA `6b62348d61db`, avec au moins 12 ancres `dépôt@sha:chemin#symbole:ligne`.
+Seule différence : quatre agents portent la consigne de groupage, quatre non.
+
+**Chaque ancre a été rouverte dans le dépôt** — le chemin existe-t-il, le symbole est-il à la
+ligne annoncée ou dans les cinq suivantes (`mesures/verifier_ancres_banc.py`).
+
+| | Tours | Appels/tour | Coût | Rapport | Ancres | **Ancres justes** |
+| --- | --- | --- | --- | --- | --- | --- |
+| témoin | 17 · 17 · 13 · 12 | 1,50–1,83 | méd. **0,185 M** | 12–15 k car | 21 · 23 · 24 · 31 | **100 %** |
+| groupée | 12 · 12 · 12 · 10 | 1,73–1,91 | méd. **0,166 M** | 12–16 k car | 23 · 25 · 28 · 29 | **100 %** |
+
+## Verdict
+
+**Le gain est mesuré : −10,1 % sur le coût, −20 % sur les tours.** Les deux nuages de tours ne se
+recouvrent pas — le groupé n'a jamais dépassé 12 tours, le témoin est monté à 17 deux fois.
+
+**La non-régression est établie, et mieux que cela.** Sur 204 ancres et huit agents, **exactitude
+de 100 % des deux côtés, zéro ancre inventée**. Et les agents groupés en ont produit **davantage**
+— médiane 26,5 contre 23,5 — pour une longueur de rapport comparable.
+
+**Rétractation d'une inquiétude que j'avais soulevée** : la première paire donnait 31 ancres au
+témoin contre 23 au groupé, et j'avais refusé de conclure sur un tirage. Bien m'en a pris — sur
+quatre paires l'écart s'inverse. **C'était du bruit.**
+
+## La simulation est validée par le banc
+
+Le modèle prédisait −10,8 % pour une réduction de 20 % des tours ; le banc mesure **−10,1 %**.
+**Écart de 0,7 point.** Le simulateur de ce rapport reproduit donc le réel à moins d'un point
+sur le seul levier qui ait pu être éprouvé de bout en bout.
+
+## Chiffrage final, calibré sur la mesure
+
+| Combinaison | Gain |
+| --- | --- |
+| Listing des skills seul | 2,0 % |
+| Borne d'écriture seule (part Write mesurée) | 3,5 % |
+| Groupage seul, **calibré sur le banc** | **10,1 % mesuré · 10,8 % simulé** |
+| **LES TROIS ENSEMBLE** | **15,7 %** |
+| Plafond, si toutes les réécritures tombaient | 17,3 % |
