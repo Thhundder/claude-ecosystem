@@ -120,6 +120,11 @@ if has '(^|[^A-Za-z0-9_-])rm[[:space:]]'; then
   while IFS= read -r t; do
     [ -z "$t" ] && continue
     t="${t%\"}"; t="${t#\"}"; t="${t%\'}"; t="${t#\'}"
+    # Deux emplacements sont jetables par definition : le cache de l'outillage et
+    # le repertoire temporaire du systeme. Y effacer n'a jamais de consequence.
+    case "$t" in
+      "$HOME"/.claude/cache/*|'~/.claude/cache/'*|/tmp/*|'$HOME'/.claude/cache/*) continue ;;
+    esac
     case "$t" in
       /|/*|'~'|'~/'*|'$HOME'*|../*|*/../*|..)
         decide ask "Effacement hors du repertoire de travail ($t). Confirme." ;;
