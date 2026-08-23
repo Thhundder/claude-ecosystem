@@ -67,9 +67,13 @@ sur des captures. Trois mille tests verts n'ont pas vu qu'une app était illisib
 
 # Forme
 
-Répondre en **logique** : le résultat, la méthode, la raison. Jamais de code, de nom de
-fonction ou de numéro de ligne dans le corps de la réponse — ils vont dans une section
-**Traçabilité** en fin de réponse, avec tout ce qui permet de vérifier les affirmations.
+**La traçabilité ouvre la réponse, elle ne la ferme pas.** Une section **Traçabilité** en
+tête : chemins, chiffres, commandes, tout ce qui permet de vérifier ce qui suit. Le lecteur
+voit sur quoi la réponse repose avant de la lire, et la réponse elle-même se termine sur le
+résultat, pas sur des références.
+
+Le corps répond en **logique** : le résultat, la méthode, la raison. Jamais de code, de nom de
+fonction ou de numéro de ligne dans le corps — ils appartiennent à la traçabilité.
 
 Le nom d'une bibliothèque, d'une commande ou d'une interface publique **sur laquelle porte
 la question** n'est pas concerné : l'interdiction vise le récit de sa propre implémentation,
