@@ -304,7 +304,11 @@ qu'un agent se résumant à lui-même en cours de route atteigne la même qualit
 **Trois leviers rapportent 19,9 % ensemble, sans risque de fond, et deux d'entre eux sont
 mécaniques :**
 
-1. **Retirer le listing des skills des agents de workflow** — 2,0 %, risque nul mesuré.
+1. ~~**Retirer le listing des skills des agents de workflow**~~ — 2,0 %, risque nul mesuré.
+   **ÉCARTÉ le 2026-08-23.** Le réglage `disableBundledSkills` existe et le gain est réel,
+   mais il ne distingue pas les sous-agents de la session principale : l'activer retirerait
+   aussi les compétences fournies employées ailleurs. Décision de l'utilisateur : on garde.
+   Ne pas le reproposer sans un moyen de le restreindre aux agents de workflow.
 2. **Faire écrire le fichier de sortie en trois appels** — 5,3 %, risque nul, une phrase dans
    le brief du synthétiseur.
 3. **Demander le groupage des appels indépendants** — 13,6 % au taux prudent, une phrase dans
