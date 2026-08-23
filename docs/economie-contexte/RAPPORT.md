@@ -358,3 +358,33 @@ pour zéro ligne écrite — le seul vol `wf_4659c272-75d` a brûlé 442,9 M de 
 
 **SOLUTION** : plafonner un vol à **trois sous-points** sur fenêtre neuve (14 M sur 17-18),
 quatre si la fenêtre est réputée entamée de moins d'un quart.
+
+---
+
+## 10. Chiffrage final, après le banc
+
+Le banc du 23 août a démenti une partie du levier d'écriture : borner la taille des appels
+n'atteint que la part des réécritures imputable à une génération longue — 55 % de la masse,
+mesurée. Le chiffrage est repris en conséquence (`mesures/final.py`), sur le régime actuel.
+
+| Levier | Gain | Statut |
+| --- | --- | --- |
+| Retirer le listing des skills | **2,0 %** | **mesuré** — risque nul établi sur 3 contrôles |
+| Borner les appels d'écriture à 25 000 car. | **3,5 %** | **mécanisme prouvé en vol**, part Write mesurée |
+| — plafond si toutes les réécritures tombaient | 5,3 % | non atteint par le banc |
+| Grouper les appels indépendants, 25 % | **13,6 %** | **simulé** — non-régression prouvée, gain non mesuré |
+
+| Combinaison | Gain | Sur les 112 sous-points restants |
+| --- | --- | --- |
+| **PRUDENT** — groupage à 15 % | **13,1 %** | 68 M · ≈ 1 000 $ · 4 fenêtres |
+| **ATTENDU** — groupage à 25 % | **18,4 %** | **96 M · ≈ 1 440 $ · 5 fenêtres sur 29** |
+| **PLAFOND** — réécritures toutes supprimées, groupage 40 % | 27,7 % | 145 M · ≈ 2 170 $ · 8 fenêtres |
+
+**Ce qui est vérifié en non-régression, et ce qui ne l'est pas.**
+
+| Levier | Non-régression | Preuve |
+| --- | --- | --- |
+| Skills | **Établie** | Zéro appel de skill, zéro chargement, zéro mention, sur 1 323 agents |
+| Borne d'écriture | **Établie** | Les mêmes octets sont écrits ; le banc a produit 185 670 caractères complets en trois appels |
+| Groupage | **Établie sur une tâche courte** | Deux inventaires **identiques au caractère près**, 13/13 contre une vérité calculée indépendamment |
+| Groupage sur une tâche longue de type sonde | **NON VÉRIFIÉE** | Un second banc de vingt tours, ≈ 2 M, la trancherait |
