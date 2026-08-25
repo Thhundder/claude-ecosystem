@@ -29,7 +29,9 @@ cmd="$(printf '%s' "$cmd" | awk '
   { print }
 ')"
 
-CMDPOS='(^|[;&|(]|&&|\|\|)[[:space:]]*((bash|sh|source)[[:space:]]+)?(\./)?([A-Za-z0-9_.-]+/)*'
+# Un chemin absolu ou en ~/ est une position de commande comme une autre : sans lui,
+# `/srv/app/deploy.sh` et `~/projets/deploy.sh` passaient sans confirmation.
+CMDPOS='(^|[;&|(]|&&|\|\|)[[:space:]]*((bash|sh|source)[[:space:]]+)?(\.?~?/)?([A-Za-z0-9_.-]+/)*'
 
 # --- 0. Fichiers d'identifiants : la valeur ne doit jamais entrer dans la conversation
 CRED='(^|[/(,{[:space:]=])((\.env(\.[A-Za-z0-9_-]+)?|\.claude\.json|\.credentials\.json|\.hub-notify\.json|\.netrc|\.npmrc|\.pgpass|id_rsa|id_ecdsa|id_ed25519)|([A-Za-z0-9_.-]*([Cc]redential|[Ss]ecret|[Tt]oken|[Aa]pi[-_]?[Kk]ey)[A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,6})|([A-Za-z0-9_.~/-]*/[A-Za-z0-9_.-]*([Cc]redential|[Ss]ecret)[A-Za-z0-9_.-]*)|([A-Za-z0-9_./-]+\.(pem|p12|pfx|key|jks|keystore)))([[:space:],;`)}]|$)'
@@ -66,15 +68,23 @@ if has "$SUBST" && { has "$ECRIT" || has 'sed -i'; } && ! has "$PREUVE"; then
   decide deny "Substitution par motif sans preuve qu'elle s'est appliquée. Un motif absent laisse le fichier inchangé, la commande sort en succès, et le correctif annoncé n'existe pas. Utiliser ~/.claude/bin/remplacer.py <fichier> <ancien> <nouveau> — il échoue si le motif n'est pas trouvé le bon nombre de fois et relit après écriture. Ou ajouter une vérification dans la même commande."
 fi
 
+# Le controle de deploiement doit voir a travers ssh : la machine distante est
+# exclue des garde-fous, pas le declenchement lui-meme. Sans retrait du prefixe
+# « ssh <hote> » et des guillemets, `ssh hote ./deploy.sh` passait sans confirmation.
+depl="$(printf '%s' "$cmd" \
+  | sed -E 's/(^|[;&|][[:space:]]*)ssh[[:space:]]+(-[A-Za-z]([[:space:]]+[^[:space:]]+)?[[:space:]]+)*[^[:space:]]+[[:space:]]+/\1/g' \
+  | tr -d '\042\047')"
+hasd() { printf '%s' "$depl" | grep -qE "$1"; }
+
 # --- 1. Deploiement interactif : injouable par un agent, il attend un choix clavier
-if has "${CMDPOS}build-and-deploy\.sh"; then
+if has "${CMDPOS}build-and-deploy\.sh" || hasd "${CMDPOS}build-and-deploy\.sh"; then
   decide deny "Script de deploiement interactif (menu clavier) : il figerait la session. Lance-le toi-meme."
 fi
 
 # --- 2. Declenchement d'un deploiement
-if has "${CMDPOS}deploy\.sh" \
-  || has 'gh[[:space:]]+workflow[[:space:]]+run[^|;&]*deploy' \
-  || has 'eas[[:space:]]+build[^|;&]*--profile[[:space:]]+production'; then
+DEPLOI='gh[[:space:]]+workflow[[:space:]]+run[^|;&]*deploy|eas[[:space:]]+build[^|;&]*--profile[[:space:]]+production'
+if has "${CMDPOS}deploy\.sh" || hasd "${CMDPOS}deploy\.sh" \
+  || has "$DEPLOI" || hasd "$DEPLOI"; then
   decide ask "Declenchement d'un deploiement. Confirme explicitement."
 fi
 
