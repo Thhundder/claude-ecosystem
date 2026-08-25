@@ -15,7 +15,7 @@ argument-hint: push | pull
 | `output-styles/` | le style qui porte la méthode |
 | `hooks/` | ce que `settings.json` appelle par chemin |
 | `bin/` | ce que les hooks et l'indicateur appellent par chemin |
-| `installe.txt` | **la liste de ce qui est installé** — sans elle une restauration ne réinstalle rien |
+| `installe.txt` | **la liste de ce qui est installé, et elle fait foi** — le `pull` réinstalle ce qui y figure et retire les liens qui n'y sont plus. Sans elle, il ne fait ni l'un ni l'autre |
 
 ## Ce qui n'est jamais touché
 
@@ -75,8 +75,22 @@ case "$MODE" in
         ln -sfn "$ECO/$rel" "$LIVE/$k/$nom" && n=$((n+1))
       done < "$REPO/installe.txt"
       echo "  ok  $n artefact(s) reinstalles"
+      # installe.txt fait foi : ce qui n'y figure pas n'est pas installe. Seuls les liens
+      # sont balayes — un fichier reel a ete ecrit a la main, on n'y touche pas.
+      r=0
+      for k in agents skills commands; do
+        attendus="|$(grep "^$k|" "$REPO/installe.txt" | cut -d"|" -f3 | tr "\\n" "|")"
+        for e in "$LIVE/$k"/*; do
+          [ -e "$e" ] || [ -L "$e" ] || continue
+          nom=$(basename "$e")
+          case "$attendus" in *"|$nom|"*) continue ;; esac
+          if [ -L "$e" ]; then rm "$e"; r=$((r+1)); echo "      retire  $k/$nom"
+          else echo "      garde   $k/$nom (fichier reel, pas un lien)"; fi
+        done
+      done
+      echo "  ok  $r lien(s) hors liste retire(s)"
     else
-      echo "  -- installe.txt absent : rien n'a ete reinstalle"
+      echo "  -- installe.txt absent : ni reinstallation ni balayage"
     fi
     echo; echo "Reste a la main : bun add playwright-core dans ~/.claude/lib ; outils jq, chrome, node, bun, python3."
     ;;
