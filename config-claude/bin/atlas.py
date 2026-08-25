@@ -13,9 +13,9 @@ import os, re, sys, glob, html, colorsys
 
 # Le debut de ligne n'est pas une ancre fiable : une feuille compacte ou minifiee
 # porte plusieurs declarations par ligne, et l'atlas sortait presque vide sans le dire.
-VAR = re.compile(r'(?:^|[{;])\s*(--[a-z0-9-]+)\s*:\s*([^;}]+)(?=[;}])', re.M)
+VAR = re.compile(r'(?:^|[{;]|\*/)\s*(--[a-z0-9-]+)\s*:\s*([^;}]+)(?=[;}])', re.M)
 HEX = re.compile(r'#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b')
-CLS = re.compile(r'^\.([a-z][a-z0-9-]*)', re.M)
+CLS = re.compile(r'(?:^|[\s{},>+~])\.([a-z][a-z0-9-]*)', re.M)
 FS  = re.compile(r'font-size\s*:\s*([0-9.]+)(px|rem|em)')
 RAD = re.compile(r'border-radius\s*:\s*([0-9.]+)px')
 
