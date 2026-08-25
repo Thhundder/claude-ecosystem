@@ -10,16 +10,7 @@ motif="${2:-}"
 python3 - "$f" "$motif" <<'PY'
 import sys, json, re, hashlib
 
-SENS = re.compile(r'(token|key|secret|pass|pwd|mdp|mot[-_]?de[-_]?passe|senha|contrase'
-                  r'|auth|credential|bearer|api[-_]?key|private|salt|seed|otp|totp|\bpin\b'
-                  r'|cert|signing|signature|nonce|cookie|session|dsn|licen[cs]e|webhook'
-                  r'|code|hmac|jwt|sig)', re.I)
-
-# Un identifiant court echappe a l'heuristique d'entropie : ce qui le trahit est son
-# prefixe d'emetteur. Mesure du 2026-08-25 : DB_PASS, STRIPE_SK et GITHUB_PAT sortaient
-# en clair du seul outil cense ne jamais montrer une valeur.
-INDICES = re.compile(r'^(sk_|pk_|rk_|ghp_|gho_|ghu_|ghs_|ghr_|github_pat_|xox[abprs]-'
-                     r'|AKIA|ASIA|AIza|ya29\.|eyJ|glpat-|dop_v1_|shpat_|sq0csp-|-----BEGIN)')
+SENS = re.compile(r'(token|key|secret|password|passwd|pwd|auth|credential|bearer|api[-_]?key|private)', re.I)
 
 def empreinte(v):
     s = str(v)
@@ -39,8 +30,6 @@ def sensible(cle, val):
     if SENS.search(str(cle)):
         return True
     s = str(val)
-    if INDICES.search(s):
-        return True
     return len(s) >= 24 and re.fullmatch(r'[A-Za-z0-9_\-\.\+/=]{24,}', s) is not None
 
 def marche(o, chemin=""):

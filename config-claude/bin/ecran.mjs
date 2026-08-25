@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Inventaire d'un ecran rendu, et comparaison maquette contre reel.
 // Le but n'est pas le pixel : c'est qu'aucun element de la maquette ne manque.
 // Rendu par un vrai navigateur, parce qu'un element peut exister dans le HTML
@@ -7,8 +6,6 @@ import { createRequire } from 'node:module';
 const exiger = createRequire(import.meta.url);
 const { chromium } = exiger(process.env.HOME + '/.claude/lib/node_modules/playwright-core');
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 const EXTRACTION = () => {
   const visible = (e) => {
@@ -56,8 +53,7 @@ const EXTRACTION = () => {
 async function inventaire(cible, { viewport, attente }) {
   const nav = await chromium.launch({ channel: 'chrome' });
   const page = await nav.newPage({ viewport });
-  const url = /^https?:|^file:/.test(cible) ? cible
-    : pathToFileURL(resolve(cible)).href;
+  const url = /^https?:|^file:/.test(cible) ? cible : 'file://' + cible;
   await page.goto(url, { waitUntil: 'networkidle' }).catch(() => page.goto(url));
   await page.waitForTimeout(attente);
   const inv = await page.evaluate(EXTRACTION);
