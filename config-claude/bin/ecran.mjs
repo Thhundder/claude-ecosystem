@@ -84,8 +84,11 @@ function comparer(ref, reel) {
   // le libelle seul : une maquette dessine un bloc la ou l'app produit un vrai bouton
   const c = diff(ref.controles, reel.controles, (x) => x.nom);
   const m = diff(ref.medias, reel.medias, (x) => x.nom);
-  const total = t.manque.length + c.manque.length + m.manque.length;
-  return { textes: t, controles: c, medias: m, verdict: total === 0 ? 'CONFORME' : 'INCOMPLET', manquants: total };
+  // sac() jette les cles vides : une maquette sans titre n'en exige donc aucun,
+  // et seul un titre attendu puis absent ou change compte comme manquant.
+  const ti = diff([ref.titre || ''], [reel.titre || ''], (x) => x);
+  const total = t.manque.length + c.manque.length + m.manque.length + ti.manque.length;
+  return { titre: ti, textes: t, controles: c, medias: m, verdict: total === 0 ? 'CONFORME' : 'INCOMPLET', manquants: total };
 }
 
 const [mode, a, b] = process.argv.slice(2);
