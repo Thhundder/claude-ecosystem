@@ -49,8 +49,21 @@ def etat_workflow(dossier, maintenant):
     return dict(etat=etat, wf=os.path.basename(dossier), lances=len(lances),
                 rendus=len(rendus), orphelins=len(orphelins), geles=geles, silence=silence_wf)
 
+CLOS = os.path.expanduser('~/.claude/.veille-clos')
+
+def deja_traites():
+    """Un vol dont on a constate et consigne l'issue ne doit plus reveiller.
+    Sans cela l'alerte se repete a chaque tour et finit par etre ignoree —
+    y compris le jour ou elle dit vrai."""
+    try:
+        with open(CLOS) as f:
+            return {l.strip() for l in f if l.strip() and not l.startswith('#')}
+    except OSError:
+        return set()
+
 def veiller(projet=None, fenetre_h=FENETRE_H):
     maintenant = time.time()
+    tus = deja_traites()
     motif = f'{RACINE}/*/*/subagents/workflows/wf_*'
     out = []
     for d in glob.glob(motif):
@@ -62,7 +75,7 @@ def veiller(projet=None, fenetre_h=FENETRE_H):
         except OSError:
             continue
         e = etat_workflow(d, maintenant)
-        if e: out.append(e)
+        if e and e['wf'] not in tus: out.append(e)
     return out
 
 if __name__ == '__main__':
