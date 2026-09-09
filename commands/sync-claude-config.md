@@ -63,7 +63,8 @@ case "$MODE" in
     done
     for d in "${DOSSIERS[@]}"; do
       [ -d "$REPO/$d" ] || { echo "  -- $d/ absent du depot"; continue; }
-      mkdir -p "$LIVE/$d"; cp -r "$REPO/$d/." "$LIVE/$d/"; chmod +x "$LIVE/$d"/* 2>/dev/null
+      mkdir -p "$LIVE/$d"; cp -r "$REPO/$d/." "$LIVE/$d/"
+      case "$d" in hooks|bin) chmod +x "$LIVE/$d"/* 2>/dev/null ;; esac
       echo "  ok  $d/"
     done
     if [ -f "$REPO/installe.txt" ]; then
