@@ -108,6 +108,7 @@ Mesure d'un vol : `bin/cout-vol.py --projet <slug>`.
 ## Dépôt d'outillage
 
 `~/Documents/claude-ecosystem` — versionne cette configuration (`/sync-claude-config`).
-Il contient 14 agents, 50 skills et 13 commandes écrits au fil du temps ; **seuls les trois agents
-ci-dessus sont installés**. Le reste existe sans être chargé. Pour restaurer une configuration
+Il ne contient que ce qui est chargé : les trois agents ci-dessus, la commande de sync, le miroir
+`config-claude/` et deux scripts de mesure d'usage dans `scripts/`. Tout le reste a été supprimé le
+2026-09-09 ; l'état antérieur est au tag `avant-tri-2026-09-09`. Pour restaurer une configuration
 entière : `~/claude-backup-20260822T1613`.

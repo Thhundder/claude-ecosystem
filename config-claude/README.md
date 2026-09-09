@@ -1,31 +1,21 @@
-# Claude Code Config — Versioned Mirror
+# config-claude — miroir de ~/.claude
 
-Mirror of the user-level Claude Code config (`~/.claude/`) versioned here so it can be checked into git and restored on another machine.
+Copie versionnée de ce que `~/.claude/` charge à chaque session.
 
-## Files
+| Élément | Rôle |
+| --- | --- |
+| `CLAUDE.md` | doctrine utilisateur |
+| `settings.json` | permissions, hooks, style, indicateur, mode auto |
+| `lentilles.md` | catalogue des lentilles de vérification |
+| `output-styles/rigueur.md` | le style qui porte la méthode |
+| `hooks/` | ce que `settings.json` appelle par chemin |
+| `bin/` | ce que les hooks, l'indicateur et la doctrine appellent par chemin |
+| `installe.txt` | liste des liens `~/.claude/{agents,commands}` → dépôt |
 
-- `CLAUDE.md` — user-level doctrine loaded in every session
-- `settings.json` — permissions, hooks, effortLevel
-- `.mcp.json` — MCP server config (Context7 baseline)
+Jamais copiés : identifiants, sessions, historique, `lib/` (dépendance à réinstaller),
+`~/.claude.json`.
 
-## Sync workflow
+- `/sync-claude-config push` — machine → dépôt, puis relire le diff et enregistrer
+- `/sync-claude-config pull` — dépôt → machine, recrée les liens d'après `installe.txt`
 
-### You edited `~/.claude/*` → persist to this repo
-
-```
-/sync-claude-config push
-```
-
-Copies from `~/.claude/` → `config-claude/`. Commit the repo manually after.
-
-### You restored this repo on a new machine → apply to `~/.claude/`
-
-```
-/sync-claude-config pull
-```
-
-Copies from `config-claude/` → `~/.claude/`. **Does not** overwrite `.credentials.json`, session data, or history — only the config files listed above.
-
-## Manual backup before big changes
-
-The sync command does not back up. Do it yourself with e.g. `cp -r ~/.claude ~/.claude-backup-$(date +%F)` before pulling / experimenting.
+Sauvegarde avant une opération lourde : `cp -r ~/.claude ~/claude-backup-$(date +%Y%m%dT%H%M)`.

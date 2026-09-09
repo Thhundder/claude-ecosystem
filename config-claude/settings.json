@@ -1,38 +1,16 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "model": "opus",
-  "effortLevel": "high",
-  "theme": "dark",
-  "tui": "fullscreen",
-  "skipWorkflowUsageWarning": true,
-  "skipAutoPermissionPrompt": true,
   "attribution": {
     "commit": "",
     "pr": ""
   },
   "permissions": {
-    "defaultMode": "auto",
     "allow": [],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "defaultMode": "auto"
   },
-  "autoMode": {
-    "allow": [
-      "$defaults",
-      "Bash(ssh:*)",
-      "Bash(scp:*)",
-      "Bash(rsync:*)"
-    ],
-    "environment": [
-      "**Contexte**: développeur solo. Toute l'infrastructure citée ici lui appartient et il en autorise l'accès complet.",
-      "**Hôtes distants**: xeko-backend-prod, xeko-crawler-prod, et les VPS joignables par ssh sont ses machines. Accès commande complet autorisé, lecture comme écriture. Aucune précaution supplémentaire n'est attendue du seul fait qu'un hôte porte 'prod' dans son nom.",
-      "**Dépôts d'entreprise**: tout dépôt sous ~/Documents/Xeko. Branches partagées: dev et main — un garde-fou demande confirmation avant d'y enregistrer ou d'y publier.",
-      "**Autres dépôts**: projets personnels ou scolaires, développeur unique, branche unique. Aucune branche partagée, aucune confirmation attendue.",
-      "**Déploiements**: le déclenchement d'un déploiement demande confirmation explicite. Le reste des opérations sur les serveurs ne demande rien.",
-      "**Secrets**: ne jamais afficher la valeur d'un identifiant, seulement son existence.",
-      "**Garde-fous**: un hook unique sur Bash traite les cas ci-dessus. Il est silencieux partout ailleurs — aucune confirmation ne doit être sollicitée en dehors de ce qu'il intercepte."
-    ]
-  },
+  "model": "fable",
   "hooks": {
     "PreToolUse": [
       {
@@ -85,13 +63,36 @@
       }
     ]
   },
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true
-  },
-  "outputStyle": "rigueur",
   "statusLine": {
     "type": "command",
     "command": "\"$HOME\"/.claude/bin/statusline.sh",
     "padding": 0
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
+  },
+  "outputStyle": "rigueur",
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark",
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)"
+    ],
+    "environment": [
+      "**Contexte**: développeur solo. Toute l'infrastructure citée ici lui appartient et il en autorise l'accès complet.",
+      "**Hôtes distants**: xeko-backend-prod, xeko-crawler-prod, et les VPS joignables par ssh sont ses machines. Accès commande complet autorisé, lecture comme écriture. Aucune précaution supplémentaire n'est attendue du seul fait qu'un hôte porte 'prod' dans son nom.",
+      "**Dépôts d'entreprise**: tout dépôt sous ~/Documents/Xeko. Branches partagées: dev et main — un garde-fou demande confirmation avant d'y enregistrer ou d'y publier.",
+      "**Autres dépôts**: projets personnels ou scolaires, développeur unique, branche unique. Aucune branche partagée, aucune confirmation attendue.",
+      "**Déploiements**: le déclenchement d'un déploiement demande confirmation explicite. Le reste des opérations sur les serveurs ne demande rien.",
+      "**Secrets**: ne jamais afficher la valeur d'un identifiant, seulement son existence.",
+      "**Garde-fous**: un hook unique sur Bash traite les cas ci-dessus. Il est silencieux partout ailleurs — aucune confirmation ne doit être sollicitée en dehors de ce qu'il intercepte."
+    ]
   }
 }

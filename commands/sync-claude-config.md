@@ -53,7 +53,6 @@ case "$MODE" in
       done
     done
     echo "  ok  installe.txt ($(wc -l < "$REPO/installe.txt") entrees)"
-    [ -f "$REPO/.mcp.json" ] && { rm -f "$REPO/.mcp.json"; echo "  --  .mcp.json retire"; }
     echo; echo "Relire le diff dans $REPO, puis enregistrer."
     ;;
 

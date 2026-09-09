@@ -36,7 +36,7 @@ proprement dit, puis une salve de `<system-reminder>` accrochée au premier tour
 | # | Bloc | Fichier source | ~tokens |
 |---|---|---|---|
 | 13 | `~/.claude/CLAUDE.md` | user | **543** |
-| 14 | 6 rules `@`-importées | `rules/**` | **3 211** |
+| 14 | 6 rules `@`-importées (import retiré le 22/08, dossier supprimé le 09/09) | — | **3 211** |
 | 15 | `~/CLAUDE.md` (doctrine Bun) | héritage par cwd | **631** |
 | 16 | `pms-ia/CLAUDE.md` → `AGENTS.md` | projet | **2 177** |
 | 17 | `MEMORY.md` + mémoires rappelées | mémoire projet | 40 |
@@ -85,7 +85,7 @@ Introuvables dans `settings.json`, `settings.local.json`, `~/.claude.json`, `CLA
 les rules, les hooks, l'environnement shell ou les transcripts. Hypothèse la plus
 probable : directive de session persistée (`/btw`, 17 usages).
 
-C'est frontalement opposé à `rules/workflow/agent-orchestration.md` (« Delegate to
+C'est frontalement opposé à l'ancienne rule `agent-orchestration`, supprimée depuis (« Delegate to
 specialized agents … invoke automatically ») — et ça explique très probablement le
 chiffre suivant : **95 % des délégations partent en `general-purpose`**, et 11 des 14
 agents écrits n'ont jamais été appelés.
