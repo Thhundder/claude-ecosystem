@@ -12,6 +12,8 @@ f(){ printf '%s' "$IN" | jq -r "$1 // empty" 2>/dev/null; }
 cwd="$(f '.workspace.current_dir // .cwd')"; [ -z "$cwd" ] && cwd="$PWD"
 modele="$(f '.model.display_name // .model.id // .model')"
 tr_path="$(f '.transcript_path')"
+sid="$(f '.session_id')"; [ -z "$sid" ] && [ -n "$tr_path" ] && sid="$(basename "$tr_path" .jsonl)"
+seg_s=""; [ -n "$sid" ] && seg_s="session ${sid:0:8}"
 
 # --- position
 root="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)"
@@ -25,11 +27,11 @@ fi
 
 # --- journal : le bloc genere est-il posterieur a la derniere modification du depot ?
 seg_j=""
-if [ -n "$root" ] && [ -f "$root/JOURNAL.md" ]; then
+if [ -n "$root" ] && [ -f "$root/evan/JOURNAL.md" ]; then
   # comparaison a la seconde : mtime du journal contre le fichier modifie le plus recent,
   # le journal lui-meme etant exclu sinon le regenerer le rendrait perpetuellement en retard
-  tb=$(stat -c %Y "$root/JOURNAL.md" 2>/dev/null || echo 0)
-  tf=$(git -C "$cwd" status --porcelain 2>/dev/null | awk '{print $NF}' | grep -v '^JOURNAL\.md$' | head -40 \
+  tb=$(stat -c %Y "$root/evan/JOURNAL.md" 2>/dev/null || echo 0)
+  tf=$(git -C "$cwd" status --porcelain 2>/dev/null | awk '{print $NF}' | grep -v '^evan/JOURNAL\.md$' | head -40 \
        | while read -r p; do [ -e "$root/$p" ] && stat -c %Y "$root/$p" 2>/dev/null; done | sort -rn | head -1)
   if [ -n "${tf:-}" ] && [ "$tf" -gt "$tb" ]; then seg_j="journal en retard"; else seg_j="journal ✓"; fi
 elif [ -n "$root" ]; then
@@ -55,7 +57,7 @@ fi
 seg_w="$(python3 "$HOME/.claude/bin/veille-wf.py" --projet "$(printf '%s' "$cwd" | sed 's#/#-#g')" --court 2>/dev/null)"
 
 out=""
-for s in "$modele" "$seg_repo" "$seg_j" "$seg_c" "$seg_w"; do
+for s in "$modele" "$seg_repo" "$seg_s" "$seg_j" "$seg_c" "$seg_w"; do
   [ -n "$s" ] && { [ -n "$out" ] && out="$out · $s" || out="$s"; }
 done
 [ -z "$out" ] && out="$(basename "$cwd")"

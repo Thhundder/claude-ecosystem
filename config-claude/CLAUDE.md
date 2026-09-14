@@ -25,7 +25,7 @@ Ce fichier ne porte que ce qui n'y est pas, et ce qu'aucun mécanisme n'applique
 
 ## Plan, puis un agent par étape
 
-Toute demande qui dépasse une retouche commence par `evan/PLAN.md` : étapes numérotées, une
+Toute demande qui dépasse une retouche — une retouche tient dans un fichier existant, sans nouveau fichier ni nouvelle commande ; tout le reste, si petit soit-il, en est une — commence par `evan/PLAN.md` : étapes numérotées, une
 ligne chacune, ce qui se parallélise, la condition de fin de chaque étape, les décisions
 produit ouvertes marquées `?`. **Le tour se termine sur le plan posé : « plan écrit, j'attends
 ton GO ». Jamais un plan et son lancement dans le même tour.**
@@ -39,7 +39,7 @@ Si la session meurt, la loop la relance ; sinon `/reprendre`.
 
 Chez Xeko, une gate est une étape `?`. Dans un cycle Xeko, le plan n'est pas un second
 document : ce sont les phases du skill et ses artefacts (`SPEC.md`, `TEST_PLAN.md`,
-`COVERAGE_MATRIX.md`) ; `PLAN.md` ne sert qu'au travail hors cycle. La granularité d'une étape
+`COVERAGE_MATRIX.md`) ; `PLAN.md` ne sert qu'au travail hors cycle — quand un workflow xeko est en cours, on n'écrit pas de `evan/PLAN.md` : ses phases sont le plan. La granularité d'une étape
 est celle du skill — une phase, pas un test : la boucle TDD reste dans un seul contexte, chaque
 tranche répond à la précédente.
 
