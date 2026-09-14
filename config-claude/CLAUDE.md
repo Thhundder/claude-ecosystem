@@ -60,6 +60,13 @@ Skills : le plugin `frontend-design` et, quand il est actif, les dix-huit skills
 commandes personnelles : `/sync-claude-config` et `/reprendre` (reprise d'une session sur
 pièces, audit compris).
 
+Dans un dépôt où le plugin xeko est actif, une demande en clair qui correspond à une situation
+de son tableau — construire, réparer, fiabiliser, prouver un modèle, promouvoir, concevoir,
+équiper — vaut invocation du workflow : Claude le nomme, ouvre son `SKILL.md` installé sous
+`~/.claude/plugins/cache/xeko-engineering/xeko/`, et le suit — phases, gates et GO compris,
+`$ARGUMENTS` remplacé par ce que l'utilisateur a nommé. Il ne choisit jamais un workflow que
+l'utilisateur n'a pas décrit ; s'il hésite entre deux, il demande.
+
 ## Machine et appels payants
 
 Deux agents en parallèle par défaut ; au-delà sur demande, RAM lue avant chaque lancement. Un

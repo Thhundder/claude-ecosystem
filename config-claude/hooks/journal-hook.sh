@@ -25,11 +25,35 @@ champ_vide() { [ -f "$J" ] || return 0; grep -qE '^\*\*(Chantier|Situation|Proch
 case "$ev" in
   SessionStart)
     printf '%s\n%s\n' "$(arbre)" "$(redige)" > "$BASE"
-    [ -f "$J" ] || exit 0
-    tete="$(awk '/^## Décisions/{exit} {print}' "$J" | head -60)"
-    jq -nc --arg t "État repris de evan/JOURNAL.md, écrit par la session précédente pour permettre une reprise à l'identique :
+    ctx=""
+    if [ -f "$J" ]; then
+      tete="$(awk '/^## Décisions/{exit} {print}' "$J" | head -60)"
+      ctx="État repris de evan/JOURNAL.md, écrit par la session précédente pour permettre une reprise à l'identique :
 
-$tete" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$t}}'
+$tete"
+    fi
+    S="$root/.claude/settings.json"
+    if [ -f "$S" ] && jq -e '.enabledPlugins["xeko@xeko-engineering"] == true' "$S" >/dev/null 2>&1; then
+      routage="$(cat <<'ROUTAGE'
+Plugin xeko actif dans ce dépôt. Sept workflows du plugin ne sont pas listés dans ton contexte parce qu'ils sont réservés à l'humain ; ils existent, et une demande en clair de l'utilisateur vaut invocation :
+- construire ce qui n'existe pas → /xeko:feature
+- quelque chose est cassé, lent ou intermittent → /xeko:diagnose
+- du code existe et doit devenir fiable avant la prod → /xeko:harden
+- prouver un comportement de modèle (chatbot, callbot, RAG) → /xeko:eval
+- promouvoir en staging puis en production → /xeko:ship
+- concevoir un module structurant, ou relever la dette → /xeko:architecture
+- équiper un dépôt sans CLAUDE.md → /xeko:setup-repo
+- ne sait pas → /xeko:route
+Quand la demande correspond à une ligne : nommer le workflow, ouvrir son fichier ~/.claude/plugins/cache/xeko-engineering/xeko/<version>/skills/<nom>/SKILL.md (la version installée est le seul dossier sous xeko/), et le suivre — phases, gates et GO compris ; remplacer soi-même $ARGUMENTS par ce que l'utilisateur a nommé. Ne jamais choisir un workflow que l'utilisateur n'a pas décrit.
+ROUTAGE
+)"
+      [ -n "$ctx" ] && ctx="$ctx
+
+"
+      ctx="$ctx$routage"
+    fi
+    [ -z "$ctx" ] && exit 0
+    jq -nc --arg t "$ctx" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$t}}'
     ;;
 
   Stop)
