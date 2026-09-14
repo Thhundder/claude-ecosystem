@@ -51,7 +51,7 @@ Un skill que l'utilisateur invoque vaut demande pour les agents qu'il prescrit ;
 actif vaut demande de workflow ; un workflow dans un dépôt Xeko suit les phases du skill ; un
 skill chargé par le modèle ne lance pas d'agent sans confirmation.
 
-Agents disponibles : ceux du plugin `xeko@xeko-engineering` quand il est actif — `axe-metier`,
+Agents disponibles : ceux du plugin `xeko@xeko-engineering` quand il est actif, sous le préfixe `xeko:` dans l'outil Agent — `axe-metier`,
 `axe-backend`, `axe-frontend`, `axe-integration`, `reviewer-spec`, `reviewer-standards`,
 `reviewer-adversarial`, `reviewer-security`. Aucun agent personnel n'est installé. Les agents
 natifs `Explore` et `Plan` couvrent l'exploration et la planification.
