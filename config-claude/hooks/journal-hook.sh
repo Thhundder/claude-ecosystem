@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart -> injecte la tete du JOURNAL.md, et fige une empreinte de depart
+# SessionStart -> injecte la tete de evan/JOURNAL.md, et fige une empreinte de depart
 # Stop         -> refuse de clore si l'arbre de travail a bouge sans que la partie
 #                 REDIGEE du journal ait bouge, ou si des champs obligatoires sont vides.
 #
@@ -14,7 +14,7 @@ cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)"
 [ -z "$cwd" ] && cwd="$PWD"
 root="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)"
 [ -z "$root" ] && exit 0
-J="$root/JOURNAL.md"
+J="$root/evan/JOURNAL.md"
 C="$HOME/.claude/cache/journal"; mkdir -p "$C"
 BASE="$C/$sid.base"; SEEN="$C/$sid.seen"
 
@@ -27,7 +27,7 @@ case "$ev" in
     printf '%s\n%s\n' "$(arbre)" "$(redige)" > "$BASE"
     [ -f "$J" ] || exit 0
     tete="$(awk '/^## Décisions/{exit} {print}' "$J" | head -60)"
-    jq -nc --arg t "État repris de JOURNAL.md, écrit par la session précédente pour permettre une reprise à l'identique :
+    jq -nc --arg t "État repris de evan/JOURNAL.md, écrit par la session précédente pour permettre une reprise à l'identique :
 
 $tete" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$t}}'
     ;;
@@ -59,6 +59,14 @@ $tete" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$t}}
         touch "$C/$sid.front"
         quoi="$(printf '%s' "$front" | cut -d'|' -f1)"
         det="$(printf '%s' "$front" | cut -d'|' -f2)"
+        mode="$(printf '%s' "$front" | cut -d'|' -f4)"
+        if [ "$mode" = "maquette" ]; then
+          jq -nc --arg r "Travail d'interface classé « $quoi » ($det) sans maquette de l'écran visé. On ne code pas une interface neuve à l'aveugle.
+
+Avant de clore : produire une maquette HTML autonome de l'écran visé sous \`evan/maquettes/\` (ou \`maquettes/\` si l'équipe la versionne), la faire valider par l'utilisateur, puis seulement écrire l'écran." \
+            '{decision:"block", reason:$r}'
+          exit 0
+        fi
         jq -nc --arg r "Travail d'interface classé « $quoi » ($det) dans un dépôt qui n'a AUCUNE référence visuelle versionnée. On ne code pas une interface neuve à l'aveugle.
 
 Avant de clore : produire un atlas dans \`maquettes/\`, page HTML autonome et versionnée, en trois étages —
@@ -82,11 +90,11 @@ Plus un LISEZ-MOI disant ce que la page porte et quel fichier fait foi. Faire va
     [ -f "$SEEN" ] && exit 0                          # un garde-fou ne doit jamais enfermer
     touch "$SEEN"
     if [ "$r0" = "$r1" ]; then
-      motif="la partie rédigée de JOURNAL.md n'a pas bougé — régénérer le bloc d'état ne suffit pas"
+      motif="la partie rédigée de evan/JOURNAL.md n'a pas bougé — régénérer le bloc d'état ne suffit pas"
     else
       motif="des champs obligatoires de \"Où j'en suis\" sont restés vides"
     fi
-    jq -nc --arg r "L'arbre de travail a changé, mais $motif. Avant de clore : renseigne Chantier, Situation et Prochaine action ; ajoute au Journal ce qui a été fait, ce qui a été mesuré et ce qui a été supposé ; consigne toute rétractation ; puis régénère le bloc d'état avec ~/.claude/bin/journal.sh. Ensuite seulement, termine." \
+    jq -nc --arg r "L'arbre de travail a changé, mais $motif. Avant de clore : renseigne Chantier, Situation et Prochaine action ; ajoute au Journal ce qui a été fait, ce qui a été mesuré et ce qui a été supposé ; consigne toute rétractation ; puis régénère le bloc d'état de evan/JOURNAL.md avec ~/.claude/bin/journal.sh. Ensuite seulement, termine." \
       '{decision:"block", reason:$r}'
     ;;
 esac

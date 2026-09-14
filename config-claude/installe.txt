@@ -1,4 +1,2 @@
-agents|agents/silent-failure-hunter.md|silent-failure-hunter.md
-agents|agents/security-reviewer.md|security-reviewer.md
-agents|agents/bug-validator.md|bug-validator.md
 commands|commands/sync-claude-config.md|sync-claude-config.md
+commands|commands/reprendre.md|reprendre.md

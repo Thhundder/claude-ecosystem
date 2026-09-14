@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Regenere le bloc d'etat machine de JOURNAL.md a la racine du depot courant.
+# Regenere le bloc d'etat machine de evan/JOURNAL.md sous la racine du depot courant.
+# evan/ est ignore par le gitignore global : le journal ne part jamais sur une branche d'equipe.
 # Le bloc est GENERE, jamais saisi : un compteur ecrit a la main finit par mentir.
 # Cree le fichier depuis le gabarit s'il n'existe pas.
 set -u
 cd "${1:-$PWD}" 2>/dev/null || exit 0
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [ -z "$root" ] && exit 0
-J="$root/JOURNAL.md"
+J="$root/evan/JOURNAL.md"; mkdir -p "$root/evan"
 now="$(date -u '+%Y-%m-%dT%H:%MZ')"
 branch="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)"
 last="$(git -C "$root" log -1 --format='%h %s' 2>/dev/null | LC_ALL=C.UTF-8 cut -c1-90)"
@@ -70,7 +71,7 @@ $bloc
 ## Journal
 <!-- append-only, le plus détaillé. Ce qui a été fait, ce qui a été mesuré, ce qui a été supposé. -->
 EOF
-  echo "JOURNAL.md créé : $J"
+  echo "evan/JOURNAL.md créé : $J"
   exit 0
 fi
 

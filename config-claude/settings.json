@@ -10,7 +10,7 @@
     "ask": [],
     "defaultMode": "auto"
   },
-  "model": "fable",
+  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {
@@ -24,6 +24,15 @@
       },
       {
         "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME\"/.claude/hooks/contrat-hook.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
@@ -69,7 +78,16 @@
     "padding": 0
   },
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "xeko@xeko-engineering": true
+  },
+  "extraKnownMarketplaces": {
+    "xeko-engineering": {
+      "source": {
+        "source": "github",
+        "repo": "JujuBoss06/xeko-engineering"
+      }
+    }
   },
   "outputStyle": "rigueur",
   "effortLevel": "high",
@@ -86,13 +104,13 @@
       "Bash(rsync:*)"
     ],
     "environment": [
-      "**Contexte**: développeur solo. Toute l'infrastructure citée ici lui appartient et il en autorise l'accès complet.",
-      "**Hôtes distants**: xeko-backend-prod, xeko-crawler-prod, et les VPS joignables par ssh sont ses machines. Accès commande complet autorisé, lecture comme écriture. Aucune précaution supplémentaire n'est attendue du seul fait qu'un hôte porte 'prod' dans son nom.",
-      "**Dépôts d'entreprise**: tout dépôt sous ~/Documents/Xeko. Branches partagées: dev et main — un garde-fou demande confirmation avant d'y enregistrer ou d'y publier.",
-      "**Autres dépôts**: projets personnels ou scolaires, développeur unique, branche unique. Aucune branche partagée, aucune confirmation attendue.",
+      "**Contexte**: développeur au sein d'une équipe de trois sur les dépôts Xeko ; seul sur tout le reste. L'infrastructure citée ici est celle de l'entreprise ; l'accès lui est autorisé.",
+      "**Hôtes distants**: les alias de ~/.ssh/config — xeko-staging-2, xeko-backend-staging, xeko-vectorstore-staging, xeko-crawler, xeko-backend-prod, xeko-vectorstore-prod, xeko-mcp-staging, xeko-db-prod, xeko-db-staging — et les VPS personnels joignables par ssh. Accès commande complet. Sur un hôte de production : lire d'abord, écrire une fois la commande comprise ; la base de production est en lecture seule pour les évaluations ; jamais une donnée ni un paiement de production comme fixture de test.",
+      "**Dépôts d'entreprise**: tout dépôt sous ~/Documents/Xeko. Branches partagées : dev (staging) et main (prod) — un garde-fou demande confirmation avant d'y enregistrer ou d'y publier. Pousser sur une branche de travail est libre.",
+      "**Autres dépôts**: projets personnels ou scolaires, développeur unique, branche unique. Aucune confirmation attendue.",
       "**Déploiements**: le déclenchement d'un déploiement demande confirmation explicite. Le reste des opérations sur les serveurs ne demande rien.",
       "**Secrets**: ne jamais afficher la valeur d'un identifiant, seulement son existence.",
-      "**Garde-fous**: un hook unique sur Bash traite les cas ci-dessus. Il est silencieux partout ailleurs — aucune confirmation ne doit être sollicitée en dehors de ce qu'il intercepte."
+      "**Garde-fous**: trois hooks sur Bash — guard.sh (identifiants, substitutions, git destructif, déploiements, branches partagées, effacement hors périmètre) et, quand le plugin xeko est actif, ses deux gardes guard-db et guard-worktree. En dehors de ce qu'ils interceptent, aucune confirmation ne doit être sollicitée."
     ]
   }
 }

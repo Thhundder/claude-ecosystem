@@ -15,6 +15,7 @@ argument-hint: push | pull
 | `output-styles/` | le style qui porte la méthode |
 | `hooks/` | ce que `settings.json` appelle par chemin |
 | `bin/` | ce que les hooks et l'indicateur appellent par chemin |
+| `gabarits/` | les gabarits que les hooks et les commandes citent par chemin |
 | `installe.txt` | **la liste de ce qui est installé, et elle fait foi** — le `pull` réinstalle ce qui y figure et retire les liens qui n'y sont plus. Sans elle, il ne fait ni l'un ni l'autre |
 
 ## Ce qui n'est jamais touché
@@ -31,7 +32,7 @@ LIVE=~/.claude
 REPO=~/Documents/claude-ecosystem/config-claude
 ECO=~/Documents/claude-ecosystem
 FICHIERS=(CLAUDE.md settings.json lentilles.md)
-DOSSIERS=(hooks bin output-styles)
+DOSSIERS=(hooks bin output-styles gabarits)
 
 case "$MODE" in
   push)

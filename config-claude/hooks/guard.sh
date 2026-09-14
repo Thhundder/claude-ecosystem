@@ -53,7 +53,7 @@ if ! has 'lire-secret\.sh'; then
     printf '%s' "$seg" | grep -qE "$SANS_VALEUR" && continue
     touche=1; break
   done <<< "$scan"
-  [ "$touche" = 1 ] && decide deny "Cette commande afficherait le contenu d'un fichier d'identifiants. Une valeur affichée entre dans la conversation et doit être considérée comme divulguée. Utiliser ~/.claude/bin/lire-secret.sh <fichier> [motif] : il montre les clés et une empreinte de chaque valeur, jamais la valeur."
+  [ "$touche" = 1 ] && decide deny "Cette commande afficherait le contenu d'un fichier d'identifiants. Une valeur affichée entre dans la conversation et doit être considérée comme divulguée. Utiliser ~/.claude/bin/lire-secret.sh <fichier> [motif] : il montre les clés et une empreinte de chaque valeur, jamais la valeur. À distance, sans rien installer sur le serveur : ssh <hôte> bash -s -- <fichier> [motif] < ~/.claude/bin/lire-secret.sh"
 fi
 
 # --- 0 bis. Substitution par motif non verifiee
@@ -65,7 +65,7 @@ SUBST='(sed -i|\.replace\(|re\.sub\()'
 ECRIT='(open\([^)]*.w.\)|\.write\(|> *"?\$|tee )'
 PREUVE='(assert |remplacer\.py|--verifie|\.count\(|grep -c|grep -q|grep -rl|diff |md5sum|\bverif|relu|raise |\[ -e |\[ -f |test -)'
 if has "$SUBST" && { has "$ECRIT" || has 'sed -i'; } && ! has "$PREUVE"; then
-  decide deny "Substitution par motif sans preuve qu'elle s'est appliquée. Un motif absent laisse le fichier inchangé, la commande sort en succès, et le correctif annoncé n'existe pas. Utiliser ~/.claude/bin/remplacer.py <fichier> <ancien> <nouveau> — il échoue si le motif n'est pas trouvé le bon nombre de fois et relit après écriture. Ou ajouter une vérification dans la même commande."
+  decide deny "Substitution par motif sans preuve qu'elle s'est appliquée. Un motif absent laisse le fichier inchangé, la commande sort en succès, et le correctif annoncé n'existe pas. Utiliser ~/.claude/bin/remplacer.py <fichier> <ancien> <nouveau> — il échoue si le motif n'est pas trouvé le bon nombre de fois et relit après écriture. À distance, sans rien installer sur le serveur : ssh <hôte> python3 - <fichier> <ancien> <nouveau> < ~/.claude/bin/remplacer.py. Ou ajouter une vérification dans la même commande."
 fi
 
 # Le controle de deploiement doit voir a travers ssh : la machine distante est

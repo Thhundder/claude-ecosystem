@@ -9,9 +9,9 @@ lisible au tag `avant-tri-2026-09-09`.
 
 ```
 claude-ecosystem/
-├── agents/            # les 3 agents installés, liés depuis ~/.claude/agents/
-├── commands/          # /sync-claude-config, lié depuis ~/.claude/commands/
-├── config-claude/     # miroir de ~/.claude : doctrine, settings, style, hooks, bin, lentilles
+├── commands/          # /sync-claude-config et /reprendre, liés depuis ~/.claude/commands/
+├── config-claude/     # miroir de ~/.claude : doctrine, settings, style, hooks, bin, gabarits, lentilles
+├── evan/              # études et journal, ignoré par le gitignore global
 ├── scripts/           # mesure d'usage : tool-stats.py (tools natifs), custom-tools-stats.py (artefacts)
 ├── docs/economie-contexte/   # étude close le 2026-08-23, conclusions reversées dans la doctrine
 ├── AMORCE-economie-contexte.md
@@ -21,7 +21,7 @@ claude-ecosystem/
 
 ## Installation
 
-Les agents et la commande sont des liens symboliques de `~/.claude/` vers ce dépôt. La liste
+Les commandes sont des liens symboliques de `~/.claude/` vers ce dépôt. La liste
 fait foi dans `config-claude/installe.txt` ; sans elle une restauration ne réinstalle rien.
 
 - machine modifiée → `/sync-claude-config push`, relire le diff, enregistrer

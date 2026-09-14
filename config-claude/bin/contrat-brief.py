@@ -27,7 +27,7 @@ MANQUANTES = {
  # Sur une tache exhaustive, la condition d'arret porte sur l'epuisement du perimetre
  # ou sur le renoncement local, pas sur un plafond de tentatives.
  "condition d'arrêt":
-   r"(arrête|stop\b|si tu ne trouves|si rien|au-delà de|maximum|plafond|ne dépasse|renonce|abandonne"
+   r"(condition d'arrêt|arrête|stop\b|si tu ne trouves|si rien|au-delà de|maximum|plafond|ne dépasse|renonce|abandonne"
    r"|au bout de|tu (t'arrêtes|termines) quand|passes? au suivant|jusqu'à épuisement"
    r"|quand tous les .{0,30} sont traités)",
  "ce qui a été tenté":
@@ -176,35 +176,53 @@ def briefs(script):
     return out
 
 
+def _defauts_brief(i, b):
+    if len(b) < MIN_BRIEF:
+        # Ecarter un brief trop court le faisait passer en silence. Un mandat que le
+        # controle ne peut pas lire n'est pas un mandat conforme : il est incontrolable.
+        return [(i, re.sub(r'\s+', ' ', b)[:70] or '(aucun texte litteral)',
+                 ['brief illisible par le contrôle — mandat bâti hors littéraux'])]
+    absents = [k for k, rx in MANQUANTES.items() if not re.search(pla(rx), pla(b), re.I)]
+    if absents:
+        return [(i, re.sub(r'\s+', ' ', b)[:70], absents)]
+    return []
+
+
 def controler(script):
     defauts = []
     vb = [b for b in briefs(script) if VERIF.search(pla(b))]
     if vb and not any(COMPLETUDE.search(pla(b)) for b in vb):
         defauts.append((0, 'étape de vérification', ['lentille de complétude (L1)']))
     for i, b in enumerate(briefs(script), 1):
-        if len(b) < MIN_BRIEF:
-            # Ecarter un brief trop court le faisait passer en silence. Un mandat que le
-            # controle ne peut pas lire n'est pas un mandat conforme : il est incontrolable.
-            defauts.append((i, re.sub(r'\s+', ' ', b)[:70] or '(aucun texte litteral)',
-                            ['brief illisible par le contrôle — mandat bâti hors littéraux']))
-            continue
-        absents = [k for k, rx in MANQUANTES.items() if not re.search(pla(rx), pla(b), re.I)]
-        if absents:
-            debut = re.sub(r'\s+', ' ', b)[:70]
-            defauts.append((i, debut, absents))
+        defauts.extend(_defauts_brief(i, b))
     return defauts
+
+
+# L'outil `Agent` est controle aussi : le plugin d'equipe lance ses agents par cet
+# outil, et ses briefs n'ont pas les trois dimensions par construction. Le hook en
+# fait donc un avertissement, jamais un refus — ici seul le verdict est rendu.
+def _brief_agent(entree, ti):
+    nom = entree.get('tool_name')
+    if nom == 'Agent':
+        return ti.get('prompt') or ''
+    if not nom and ti.get('prompt') and not ti.get('script') and not ti.get('scriptPath'):
+        return ti['prompt']
+    return None
+
 
 if __name__ == '__main__':
     src = sys.stdin.read()
+    brief_agent = None
     try:
         entree = json.loads(src)
         ti = entree.get('tool_input', {})
         script = ti.get('script', '') or ''
+        brief_agent = _brief_agent(entree, ti)
         # Un workflow lance par `scriptPath` ne porte AUCUN script inline : le controle
         # sortait alors en 0 sans rien regarder. Tout un chantier peut n'appeler que par
         # chemin — mesure du 2026-08-22 : `docs/mailbox-v2/` le fait exclusivement, et le
         # contrat de brief n'y a jamais rien controle.
-        if not script.strip() and ti.get('scriptPath'):
+        if brief_agent is None and not script.strip() and ti.get('scriptPath'):
             base = entree.get('cwd') or os.getcwd()
             chemin = os.path.expanduser(ti['scriptPath'])
             if not os.path.isabs(chemin):
@@ -218,11 +236,16 @@ if __name__ == '__main__':
                 sys.exit(2)
     except Exception:
         script = src
-    if not script.strip():
-        sys.exit(0)
-    d = controler(script)
+    if brief_agent is not None:
+        if not brief_agent.strip():
+            sys.exit(0)
+        d, nb = _defauts_brief(1, brief_agent), 1
+    else:
+        if not script.strip():
+            sys.exit(0)
+        d, nb = controler(script), len(briefs(script))
     if not d:
-        print(f"contrat tenu — {len(briefs(script))} brief(s) contrôlé(s)")
+        print(f"contrat tenu — {nb} brief(s) contrôlé(s)")
         sys.exit(0)
     for i, debut, absents in d:
         print(f"brief {i} « {debut}… » — manque : {', '.join(absents)}")

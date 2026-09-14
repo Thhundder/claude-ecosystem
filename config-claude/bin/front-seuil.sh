@@ -41,9 +41,21 @@ fi
 [ -z "$verdict" ] && exit 0
 
 # Une reference visuelle existe-t-elle dans ce depot ?
-atlas="$(git ls-files 2>/dev/null | grep -E '^(maquettes|design-mockups|atlas|docs/maquettes)/.*\.html$' | head -1)"
-
-if [ -n "$atlas" ]; then
-  echo "$verdict|$detail|$atlas"; exit 0
+# Plugin d'equipe actif : une maquette HTML de l'ecran suffit, versionnee sous maquettes/
+# ou posee sous evan/ (ignore par git, donc lue sur le disque). Sinon : l'atlas complet.
+mode="atlas"
+if [ -f .claude/settings.json ] && jq -e '.enabledPlugins["xeko@xeko-engineering"] == true' .claude/settings.json >/dev/null 2>&1; then
+  mode="maquette"
 fi
-echo "$verdict|$detail|"; exit 2
+
+if [ "$mode" = "maquette" ]; then
+  ref="$(git ls-files 2>/dev/null | grep -E '^maquettes/.*\.html$' | head -1)"
+  [ -z "$ref" ] && ref="$(ls evan/maquettes/*.html 2>/dev/null | head -1)"
+else
+  ref="$(git ls-files 2>/dev/null | grep -E '^(maquettes|design-mockups|atlas|docs/maquettes)/.*\.html$' | head -1)"
+fi
+
+if [ -n "$ref" ]; then
+  echo "$verdict|$detail|$ref|$mode"; exit 0
+fi
+echo "$verdict|$detail||$mode"; exit 2
