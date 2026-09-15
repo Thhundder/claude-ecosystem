@@ -24,11 +24,9 @@ Trois règles, valables à chaque étape :
    connu ; sinon prendre la plus récente et le dire. Code 2 : lister les candidats et
    s'arrêter. *Fin* : `evan/reprise-<id8>.md` existe et son en-tête donne le nombre de tours.
 
-2. **Fixer où on en est, hors conversation.** Si `.claude/settings.json` du dépôt porte
-   `enabledPlugins["xeko@xeko-engineering"]` : lire `git status`, `git log -5`, puis
-   `docs/features/*/` ou `docs/qa/*/` (SPEC, TEST_PLAN, COVERAGE_MATRIX) — le plugin
-   interdit de déduire la phase depuis la conversation ; celle-ci sert à l'audit, pas à situer
-   le chantier. Ailleurs : lire `evan/PLAN.md` et `evan/JOURNAL.md` s'ils existent.
+2. **Fixer où on en est, hors conversation.** Lire `git status`, `git log -5`, puis
+   `evan/PLAN.md` et `evan/JOURNAL.md` s'ils existent. La conversation sert à l'audit, pas à
+   situer le chantier.
    *Fin* : la phase ou le chantier est nommé avec sa source.
 
 3. **Lire la reprise en entier**, du premier au dernier tour, section finale comprise, par

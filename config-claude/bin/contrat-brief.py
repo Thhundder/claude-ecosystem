@@ -198,9 +198,8 @@ def controler(script):
     return defauts
 
 
-# L'outil `Agent` est controle aussi : le plugin d'equipe lance ses agents par cet
-# outil, et ses briefs n'ont pas les trois dimensions par construction. Le hook en
-# fait donc un avertissement, jamais un refus — ici seul le verdict est rendu.
+# L'outil `Agent` est controle aussi : ses briefs sont souvent ecrits vite et au vol,
+# sans les trois dimensions. Le hook en fait donc un avertissement, jamais un refus — ici seul le verdict est rendu.
 def _brief_agent(entree, ti):
     nom = entree.get('tool_name')
     if nom == 'Agent':

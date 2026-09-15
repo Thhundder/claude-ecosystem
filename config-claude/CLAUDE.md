@@ -17,9 +17,13 @@ Ce fichier ne porte que ce qui n'y est pas, et ce qu'aucun mécanisme n'applique
   collection partagés entre dépôts, compatibles ascendants par défaut.
 - **Valider aux frontières seulement** — entrée utilisateur, réponse externe, contenu de
   fichier. Dans un système multi-tenant, chaque requête entrante, chaque lecture d'une
-  collection partagée et chaque argument produit par un modèle sont des frontières. À
-  l'intérieur, faire confiance aux contrats.
+  collection partagée et chaque argument produit par un modèle sont des frontières. Le
+  tenant vient de la session, jamais d'un argument fourni par un modèle. Une restriction
+  d'interface — bouton caché, champ désactivé — ne prouve aucune autorisation : le droit se
+  vérifie côté serveur. À l'intérieur, faire confiance aux contrats.
 - **Chirurgical** : ne changer que ce que la tâche exige.
+- **Les commandes d'un dépôt** — tests, build, migrations — se lisent dans `package.json`, la
+  CI ou ses scripts ; jamais inventées.
 - **Une fonction se lit d'un coup.** C'est la seule mesure de taille.
 - Ne jamais afficher la valeur d'un identifiant, seulement son existence.
 
@@ -37,49 +41,48 @@ principale vérifie le résultat, coche, passe à la suivante. **Un tour ne se t
 étape `?`, un blocage écrit dans le plan avec ce qui manque, ou la fin du plan.** Pas de hook.
 Si la session meurt, la loop la relance ; sinon `/reprendre`.
 
-Chez Xeko, une gate est une étape `?`. Dans un cycle Xeko, le plan n'est pas un second
-document : ce sont les phases du skill et ses artefacts (`SPEC.md`, `TEST_PLAN.md`,
-`COVERAGE_MATRIX.md`) ; `PLAN.md` ne sert qu'au travail hors cycle — quand un workflow xeko est en cours, on n'écrit pas de `evan/PLAN.md` : ses phases sont le plan. La granularité d'une étape
-est celle du skill — une phase, pas un test : la boucle TDD reste dans un seul contexte, chaque
-tranche répond à la précédente.
-
 ## Délégation
 
 **Les agents ne se déclenchent jamais d'eux-mêmes.** Ils partent si l'utilisateur le demande,
 et la demande peut rester vague : « lance des agents » suffit, le bon spécialiste est choisi.
-Un skill que l'utilisateur invoque vaut demande pour les agents qu'il prescrit ; ultracode
-actif vaut demande de workflow ; un workflow dans un dépôt Xeko suit les phases du skill ; un
-skill chargé par le modèle ne lance pas d'agent sans confirmation.
+Une commande que l'utilisateur invoque vaut demande pour les agents qu'elle prescrit ; ultracode
+actif vaut demande de workflow ; ce que le modèle charge de lui-même ne lance aucun agent sans
+confirmation.
 
-Agents disponibles : ceux du plugin `xeko@xeko-engineering` quand il est actif, sous le préfixe `xeko:` dans l'outil Agent — `axe-metier`,
-`axe-backend`, `axe-frontend`, `axe-integration`, `reviewer-spec`, `reviewer-standards`,
-`reviewer-adversarial`, `reviewer-security`. Aucun agent personnel n'est installé. Les agents
-natifs `Explore` et `Plan` couvrent l'exploration et la planification.
-
-Skills : le plugin `frontend-design` et, quand il est actif, les dix-huit skills xeko. Deux
+Aucun agent personnel n'est installé. Les agents natifs `Explore` et `Plan` couvrent
+l'exploration et la planification. Skill installé : `frontend-design`. Deux
 commandes personnelles : `/sync-claude-config` et `/reprendre` (reprise d'une session sur
 pièces, audit compris).
-
-Dans un dépôt où le plugin xeko est actif, une demande en clair qui correspond à une situation
-de son tableau — construire, réparer, fiabiliser, prouver un modèle, promouvoir, concevoir,
-équiper — vaut invocation du workflow : Claude le nomme, ouvre son `SKILL.md` installé sous
-`~/.claude/plugins/cache/xeko-engineering/xeko/`, et le suit — phases, gates et GO compris,
-`$ARGUMENTS` remplacé par ce que l'utilisateur a nommé. Il ne choisit jamais un workflow que
-l'utilisateur n'a pas décrit ; s'il hésite entre deux, il demande.
 
 ## Machine et appels payants
 
 Deux agents en parallèle par défaut ; au-delà sur demande, RAM lue avant chaque lancement. Un
 appel externe payant — modèle, PMS, API — est compté et plafonné avant d'être mis en boucle.
-Dans un cycle Xeko, les quatre agents d'axe tournent deux par deux : l'indépendance exigée par
-le plugin — aucun ne voit les conclusions des autres — tient tant que l'orchestrateur ne
-transmet rien entre eux ; la simultanéité n'est que le moyen.
+Deux sessions qui écrivent en base sur le même dépôt ont chacune leur base ; à défaut, elles
+passent l'une après l'autre.
+
+La politique d'évaluation d'un comportement de modèle est dans `~/.claude/references/evals-llm.md`,
+à lire avant tout travail d'évaluation ; la carte d'infrastructure Xeko est dans
+`~/Documents/Xeko/evan/infra-xeko.md`, à lire avant d'agir sur un serveur.
 
 ## Git
 
-Pousser sur une branche est libre, au nom propre selon la convention du dépôt — chez Xeko
-`feature/`, `fix/`, `audit/`, `harden/` — jamais un nom qui imite un environnement. `dev`
-(staging) et `main` (prod) sur demande seulement. Un push par lot cohérent.
+Pousser sur une branche est libre, au nom propre selon la convention **mesurée** du dépôt
+(branches existantes, historique), jamais supposée, et jamais un nom qui imite un
+environnement. `dev` (staging) et `main` (prod) sur demande seulement. Un push par lot cohérent.
+
+Avant un merge sur `main` ou le déclenchement d'un déploiement, présenter : tests verts, rien
+de P0 ou P1 ouvert, ce qui n'a pas été vérifié ; puis attendre le GO.
+
+## Sévérités
+
+- **P0** : données, argent ou sécurité en jeu, ou service indisponible.
+- **P1** : parcours critique cassé, sans contournement.
+- **P2** : faux ou dégradé, avec contournement.
+- **P3** : confort.
+
+La sévérité se juge sur l'impact, jamais sur l'effort de correction. En cas de doute entre
+deux, prendre la plus grave et le dire.
 
 ## Chercher vraiment
 
@@ -89,8 +92,7 @@ déclenchée. Tout le reste s'appelle « pas prouvé ». Si rien n'a été décl
 trouvé » et on liste ce qui a été essayé — jamais « ça vient probablement de là ». Ce qui marche
 est tenu pour marchant tant qu'on n'a pas montré le contraire. On reste dans le périmètre
 donné ; pour l'élargir, on demande. Quand la cause reste introuvable, on pose les logs qui la
-montreront la prochaine fois, et on l'écrit. Compatible avec `diagnose` : sa liste de 3 à 5
-hypothèses classées se montre comme hypothèses, jamais comme cause.
+montreront la prochaine fois, et on l'écrit.
 
 ## Rien n'est validé sans une épreuve qui pouvait échouer
 
@@ -154,8 +156,7 @@ Mesure d'un vol : `bin/cout-vol.py --projet <slug>`.
 Journal, plan, feuilles d'essais, études, rapports, notes : dans `evan/` à la racine du dépôt
 courant, ignoré par le gitignore global — aucun `.gitignore` de dépôt d'équipe n'est touché, et
 ça vaut dans les worktrees. Ce qui est un livrable pour l'équipe — code, tests, `SPEC.md`,
-matrice, docs du plugin, maquette validée en Gate A si l'équipe l'adopte — reste hors de
-`evan/` et se versionne comme le plugin le dit. Un fichier déjà suivi ne devient pas ignoré :
+matrice — reste hors de `evan/` et se versionne normalement. Un fichier déjà suivi ne devient pas ignoré :
 il se retire du suivi d'abord.
 
 ## Ce qui est mécanisé, et n'a donc pas à être répété
@@ -163,7 +164,7 @@ il se retire du suivi d'abord.
 | Mécanisme | Ce qu'il fait |
 | --- | --- |
 | `hooks/guard.sh` | fichiers d'identifiants, substitutions, git destructif, déploiements, branches partagées, effacement hors périmètre |
-| `hooks/journal-hook.sh` | reprise depuis `evan/JOURNAL.md` ; refus de clore sans journal ; maquette ou atlas exigé avant une interface neuve, selon que le plugin xeko est actif |
+| `hooks/journal-hook.sh` | reprise depuis `evan/JOURNAL.md` ; refus de clore sans journal ; avant une interface neuve, maquette de l'écran (socle, thème, façon de faire) dans un dépôt sous `~/Documents/Xeko`, atlas ailleurs |
 | `hooks/contrat-hook.sh` | contrat de brief et lentille de complétude : refus sur Workflow, avertissement sur Agent |
 | `hooks/veille-hook.sh` | signale un agent gelé ou un workflow arrêté |
 | `hooks/garde-tests.sh` | demande confirmation avant un `skip`, un `only` ou une assertion retirée dans un fichier de test |
@@ -175,7 +176,6 @@ il se retire du suivi d'abord.
 | `bin/remplacer.py` | substitution qui échoue si le motif manque ; à distance : `ssh hôte python3 - <args> < ~/.claude/bin/remplacer.py` |
 | `bin/cout-vol.py` | coût d'un vol d'agents, par projet |
 | `lentilles.md` | catalogue fixe des lentilles de vérification |
-| `guard-db`, `guard-worktree` | les deux gardes du plugin xeko, quand il est actif |
 
 ## Dépôt d'outillage
 

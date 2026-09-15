@@ -41,12 +41,10 @@ fi
 [ -z "$verdict" ] && exit 0
 
 # Une reference visuelle existe-t-elle dans ce depot ?
-# Plugin d'equipe actif : une maquette HTML de l'ecran suffit, versionnee sous maquettes/
-# ou posee sous evan/ (ignore par git, donc lue sur le disque). Sinon : l'atlas complet.
+# Depot sous ~/Documents/Xeko/ : une maquette HTML de l'ecran suffit, versionnee sous maquettes/
+# ou posee sous evan/ (ignore par git, donc lue sur le disque). Ailleurs : l'atlas complet.
 mode="atlas"
-if [ -f .claude/settings.json ] && jq -e '.enabledPlugins["xeko@xeko-engineering"] == true' .claude/settings.json >/dev/null 2>&1; then
-  mode="maquette"
-fi
+case "$root" in "$HOME"/Documents/Xeko/*) mode="maquette" ;; esac
 
 if [ "$mode" = "maquette" ]; then
   ref="$(git ls-files 2>/dev/null | grep -E '^maquettes/.*\.html$' | head -1)"

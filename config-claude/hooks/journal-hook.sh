@@ -32,26 +32,6 @@ case "$ev" in
 
 $tete"
     fi
-    S="$root/.claude/settings.json"
-    if [ -f "$S" ] && jq -e '.enabledPlugins["xeko@xeko-engineering"] == true' "$S" >/dev/null 2>&1; then
-      routage="$(cat <<'ROUTAGE'
-Plugin xeko actif dans ce dépôt. Sept workflows du plugin ne sont pas listés dans ton contexte parce qu'ils sont réservés à l'humain ; ils existent, et une demande en clair de l'utilisateur vaut invocation :
-- construire ce qui n'existe pas → /xeko:feature
-- quelque chose est cassé, lent ou intermittent → /xeko:diagnose
-- du code existe et doit devenir fiable avant la prod → /xeko:harden
-- prouver un comportement de modèle (chatbot, callbot, RAG) → /xeko:eval
-- promouvoir en staging puis en production → /xeko:ship
-- concevoir un module structurant, ou relever la dette → /xeko:architecture
-- équiper un dépôt sans CLAUDE.md → /xeko:setup-repo
-- ne sait pas → /xeko:route
-Quand la demande correspond à une ligne : nommer le workflow, ouvrir son fichier ~/.claude/plugins/cache/xeko-engineering/xeko/<version>/skills/<nom>/SKILL.md (la version installée est le seul dossier sous xeko/), et le suivre — phases, gates et GO compris ; remplacer soi-même $ARGUMENTS par ce que l'utilisateur a nommé. Ne jamais choisir un workflow que l'utilisateur n'a pas décrit.
-ROUTAGE
-)"
-      [ -n "$ctx" ] && ctx="$ctx
-
-"
-      ctx="$ctx$routage"
-    fi
     [ -z "$ctx" ] && exit 0
     jq -nc --arg t "$ctx" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$t}}'
     ;;
@@ -87,7 +67,12 @@ ROUTAGE
         if [ "$mode" = "maquette" ]; then
           jq -nc --arg r "Travail d'interface classé « $quoi » ($det) sans maquette de l'écran visé. On ne code pas une interface neuve à l'aveugle.
 
-Avant de clore : produire une maquette HTML autonome de l'écran visé sous \`evan/maquettes/\` (ou \`maquettes/\` si l'équipe la versionne), la faire valider par l'utilisateur, puis seulement écrire l'écran." \
+Avant de clore : produire une maquette HTML autonome de l'écran visé sous \`evan/maquettes/\` (ou \`maquettes/\` si le dépôt versionne les siennes), qui porte toujours —
+· son socle : les jetons du dépôt (couleurs par rôle, typographie, rayons, espacements), repris du code réel ;
+· son thème : la palette réelle de l'application, en clair et en sombre s'ils existent ;
+· sa façon de faire de base : les composants et conventions d'écran déjà en place dans le dépôt.
+
+Pas de zone contraste ni de fils : ce n'est pas l'atlas. Faire valider la maquette par l'utilisateur, puis seulement écrire l'écran." \
             '{decision:"block", reason:$r}'
           exit 0
         fi

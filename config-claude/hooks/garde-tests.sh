@@ -3,7 +3,7 @@
 # par defaut : n'intervient que si le texte AJOUTE affaiblit un test.
 # Pourquoi : le 14/09, une consigne en clair a suffi pour qu'une session pose
 # `test.skip(...)` en tete de trois fichiers e2e en cinq minutes. La regle
-# d'equipe « jamais affaiblir, supprimer, sauter ou contourner un test valide »
+# « jamais affaiblir, supprimer, sauter ou contourner un test valide »
 # n'etait que de la prose. Ici elle demande confirmation.
 # Un affaiblissement, c'est : un motif de saut ou d'exclusivite dans les lignes
 # nouvelles, ou un nombre d'assertions qui baisse entre old_string et new_string.
@@ -25,7 +25,7 @@ decide() { jq -nc --arg d "$1" --arg r "$2" \
   exit 0
 }
 
-REGLE="la regle d'equipe interdit d'affaiblir un test valide pour obtenir un vert ; si le test est faux, explique-le a l'utilisateur avant d'y toucher"
+REGLE="la regle interdit d'affaiblir un test valide pour obtenir un vert ; si le test est faux, explique-le a l'utilisateur avant d'y toucher"
 MOTIFS='test\.skip|it\.skip|describe\.skip|test\.fixme|xit\(|xdescribe\(|xtest\(|\.only\(|test\.todo|pytest\.mark\.skip|@skip|unittest\.skip|t\.Skip\('
 
 # Lignes de new absentes de old : c'est le seul texte que l'edition introduit.

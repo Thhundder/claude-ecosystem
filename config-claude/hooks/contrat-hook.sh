@@ -3,9 +3,9 @@
 # Refus, pas demande de confirmation : c'est un contrôle sur ma propre production,
 # l'utilisateur n'a pas à arbitrer une négligence de rédaction.
 #
-# Sur l'outil `Agent`, avertissement seulement : le plugin d'équipe lance ses agents
-# par cet outil et ses briefs n'ont pas les trois dimensions par construction. Le
-# rapport part alors en `hookSpecificOutput.additionalContext` avec `allow` — doc des
+# Sur l'outil `Agent`, avertissement seulement : les briefs qu'on lui passe sont souvent
+# écrits vite et au vol, un avertissement suffit ; le refus reste réservé aux workflows.
+# Le rapport part alors en `hookSpecificOutput.additionalContext` avec `allow` — doc des
 # hooks, « PreToolUse decision control » : additionalContext « String added to Claude's
 # context alongside the tool result » ; permissionDecisionReason « For "allow" and "ask",
 # shown to the user but not Claude. For "deny", shown to Claude. » Le stdout d'un

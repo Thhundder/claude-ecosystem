@@ -87,17 +87,9 @@
     "padding": 0
   },
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "xeko@xeko-engineering": true
+    "frontend-design@claude-plugins-official": true
   },
-  "extraKnownMarketplaces": {
-    "xeko-engineering": {
-      "source": {
-        "source": "github",
-        "repo": "JujuBoss06/xeko-engineering"
-      }
-    }
-  },
+  "extraKnownMarketplaces": {},
   "outputStyle": "rigueur",
   "effortLevel": "high",
   "tui": "fullscreen",
@@ -120,7 +112,7 @@
       "**Autres dépôts**: projets personnels ou scolaires, développeur unique. Enregistrer et publier sur n'importe quelle branche est libre, sans confirmation — seuls les dépôts sous ~/Documents/Xeko ont des branches protégées.",
       "**Déploiements**: le déclenchement d'un déploiement demande confirmation explicite. Le reste des opérations sur les serveurs ne demande rien.",
       "**Secrets**: ne jamais afficher la valeur d'un identifiant, seulement son existence.",
-      "**Garde-fous**: trois hooks sur Bash — guard.sh (identifiants, substitutions, git destructif, déploiements, branches partagées, effacement hors périmètre) et, quand le plugin xeko est actif, ses deux gardes guard-db et guard-worktree. En dehors de ce qu'ils interceptent, aucune confirmation ne doit être sollicitée."
+      "**Garde-fous**: guard.sh sur Bash (identifiants, substitutions, git destructif, déploiements, branches partagées, effacement hors périmètre) et garde-tests.sh sur les éditions de fichiers de test (skip, only, assertion retirée). En dehors de ce qu'ils interceptent, aucune confirmation ne doit être sollicitée."
     ]
   }
 }
