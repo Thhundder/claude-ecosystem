@@ -166,6 +166,7 @@ il se retire du suivi d'abord.
 | `hooks/journal-hook.sh` | reprise depuis `evan/JOURNAL.md` ; refus de clore sans journal ; maquette ou atlas exigé avant une interface neuve, selon que le plugin xeko est actif |
 | `hooks/contrat-hook.sh` | contrat de brief et lentille de complétude : refus sur Workflow, avertissement sur Agent |
 | `hooks/veille-hook.sh` | signale un agent gelé ou un workflow arrêté |
+| `hooks/garde-tests.sh` | demande confirmation avant un `skip`, un `only` ou une assertion retirée dans un fichier de test |
 | `bin/journal.sh` | bloc d'état du journal, généré et jamais saisi |
 | `bin/ecran.mjs` | inventaire d'un écran, maquette contre rendu réel |
 | `bin/atlas.py` | amorce l'atlas visuel d'un dépôt depuis ses jetons |

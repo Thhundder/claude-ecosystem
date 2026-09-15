@@ -39,6 +39,15 @@
             "command": "\"$HOME\"/.claude/hooks/contrat-hook.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME\"/.claude/hooks/garde-tests.sh"
+          }
+        ]
       }
     ],
     "SessionStart": [
