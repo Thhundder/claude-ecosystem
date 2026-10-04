@@ -10,9 +10,20 @@
 # context alongside the tool result » ; permissionDecisionReason « For "allow" and "ask",
 # shown to the user but not Claude. For "deny", shown to Claude. » Le stdout d'un
 # PreToolUse en exit 0 ne va qu'au journal de débogage, jamais au modèle.
+#
+# Avant tout : refus, sur Agent comme sur Workflow, si la RAM disponible est sous 3 Go.
 set -u
 input="$(cat)"
 tool="$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null)"
+
+libre="$(awk '/^MemAvailable:/{print $2}' "${CONTRAT_MEMINFO:-/proc/meminfo}" 2>/dev/null)"
+if [ -n "$libre" ] && awk -v l="$libre" -v s="${CONTRAT_RAM_MIN_GO:-3}" 'BEGIN{exit !(l < s * 1048576)}'; then
+  go="$(awk -v l="$libre" 'BEGIN{printf "%.1f", l/1048576}' | tr . ,)"
+  jq -nc --arg r "RAM disponible : $go Go (MemAvailable), sous les ${CONTRAT_RAM_MIN_GO:-3} Go gardés libres. Un lancement de plus peut faire tomber la machine et les sessions en cours. Attendre la fin d'un agent, ou libérer de la mémoire, puis relire la RAM avant de relancer." \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+  exit 0
+fi
+
 rapport="$(printf '%s' "$input" | python3 "$HOME/.claude/bin/contrat-brief.py" 2>/dev/null)"; code=$?
 [ "$code" != 2 ] && exit 0
 corps="$rapport

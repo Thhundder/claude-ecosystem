@@ -75,15 +75,27 @@ try:
 except json.JSONDecodeError:
     pass
 
+# Une ligne commentee garde souvent une ancienne valeur (« #TOKEN=... ») : mesure du
+# 2026-09-21, un jeton de prod sortait en clair par ce chemin. Elle passe par le meme masque.
+MOT_SUSPECT = re.compile(r'[A-Za-z0-9_\-\.\+/=]{20,}')
+
 for ligne in brut.splitlines():
     n = ligne.strip()
-    if not n or n.startswith('#'):
+    if not n:
         print(ligne); continue
+    diese = ''
+    if n.startswith('#'):
+        diese = '#'
+        ligne = n.lstrip('#')
+        n = ligne.strip()
+        if not re.match(r'^(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*\s*[=:]\s*\S', n):
+            print('#' + MOT_SUSPECT.sub(lambda w: empreinte(w.group(0)), masque_url(ligne)))
+            continue
     m = re.match(r'^(\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*\s*[=:]\s*)(.*)$', ligne)
     if m and m.group(2).strip():
         cle = m.group(1)
         val = m.group(2).strip().strip('"\'')
-        print(cle + (empreinte(val) if sensible(cle, val) else masque_url(val)))
+        print(diese + cle + (empreinte(val) if sensible(cle, val) else masque_url(val)))
     else:
-        print("<ligne non structurée · " + empreinte(n) + ">")
+        print(diese + "<ligne non structurée · " + empreinte(n) + ">")
 PY

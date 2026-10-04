@@ -1,2 +1,8 @@
+skills|skills/banc-essai|banc-essai
+skills|skills/site-tiers|site-tiers
+skills|skills/retirer-remplacer|retirer-remplacer
+skills|skills/serveurs-xeko|serveurs-xeko
+skills|skills/interface|interface
+skills|skills/corriger-ia-xeko|corriger-ia-xeko
 commands|commands/sync-claude-config.md|sync-claude-config.md
 commands|commands/reprendre.md|reprendre.md

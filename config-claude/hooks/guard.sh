@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Garde unique sur Bash. Silencieuse par defaut : n'intervient que sur les gestes
-# irrattrapables, partages, ou qui exposeraient un identifiant.
+# irrattrapables, partages, qui figeraient la session, ou qui exposeraient un identifiant.
 # Sur une commande ssh, seuls le controle de deploiement et celui des identifiants
 # s'appliquent : la machine distante n'est pas soumise a des garde-fous supplementaires.
 set -u
@@ -8,6 +8,7 @@ set -u
 input="$(cat)"
 cmd="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)"
 [ -z "$cmd" ] && exit 0
+brut="$cmd"
 cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)"
 [ -z "$cwd" ] && cwd="$PWD"
 
@@ -18,8 +19,9 @@ decide() { jq -nc --arg d "$1" --arg r "$2" \
 has() { printf '%s' "$cmd" | grep -qE "$1"; }
 
 # Le corps d'un document ecrit par heredoc est de la DONNEE, pas une commande.
-# Sans ce retrait, ecrire une doctrine qui mentionne un fichier d'identifiants
-# declenche la garde des identifiants.
+# Sans ce retrait, ecrire une doctrine qui cite un geste dangereux declenche les gardes
+# qui suivent. La garde des identifiants decoupe elle-meme la commande brute : un
+# heredoc donne a un interpreteur y est du code.
 cmd="$(printf '%s' "$cmd" | awk '
   !dans && match($0, /<<-?[\x27"]?[A-Za-z_][A-Za-z0-9_]*/) {
     m = substr($0, RSTART, RLENGTH); sub(/^<<-?[\x27"]?/, "", m)
@@ -34,26 +36,10 @@ cmd="$(printf '%s' "$cmd" | awk '
 CMDPOS='(^|[;&|(]|&&|\|\|)[[:space:]]*((bash|sh|source)[[:space:]]+)?(\.?~?/)?([A-Za-z0-9_.-]+/)*'
 
 # --- 0. Fichiers d'identifiants : la valeur ne doit jamais entrer dans la conversation
-CRED='(^|[/(,{[:space:]=])((\.env(\.[A-Za-z0-9_-]+)?|\.claude\.json|\.credentials\.json|\.hub-notify\.json|\.netrc|\.npmrc|\.pgpass|id_rsa|id_ecdsa|id_ed25519)|([A-Za-z0-9_.-]*([Cc]redential|[Ss]ecret|[Tt]oken|[Aa]pi[-_]?[Kk]ey)[A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,6})|([A-Za-z0-9_.~/-]*/[A-Za-z0-9_.-]*([Cc]redential|[Ss]ecret)[A-Za-z0-9_.-]*)|([A-Za-z0-9_./-]+\.(pem|p12|pfx|key|jks|keystore)))([[:space:],;`)}]|$)'
-SANS_VALEUR='^[[:space:]]*(ls|stat|test|\[|rm|mv|cp|chmod|chown|touch|mkdir|find|wc|du|file|basename|dirname|readlink|ln|echo|printf|export|source|lire-secret\.sh|git[[:space:]]+(add|rm|check-ignore|status|ls-files))([[:space:]]|$)'
-
-if ! has 'lire-secret\.sh'; then
-  scan="$(printf '%s' "$cmd" \
-    | sed -E 's/(^|[;&|][[:space:]]*)ssh[[:space:]]+[^[:space:]]+[[:space:]]+/\1/g' \
-    | tr -d '\042\047' \
-    | tr ';&|' '\n')"
-  touche=0
-  while IFS= read -r seg; do
-    # un gabarit ne porte pas de valeur ; un fichier source non plus, meme s'il
-    # s'appelle secret-quelque-chose
-    seg="$(printf '%s' "$seg" \
-      | sed -E 's#[A-Za-z0-9_./~-]*\.(example|sample|template|dist)([^A-Za-z0-9]|$)#GABARIT\2#g' \
-      | sed -E 's#[A-Za-z0-9_./~-]*\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|c|h|cpp|css|scss|html|md|sql|sh|vue|svelte)([^A-Za-z0-9]|$)#SOURCE\2#g')"
-    printf '%s' "$seg" | grep -qE "$CRED" || continue
-    printf '%s' "$seg" | grep -qE "$SANS_VALEUR" && continue
-    touche=1; break
-  done <<< "$scan"
-  [ "$touche" = 1 ] && decide deny "Cette commande afficherait le contenu d'un fichier d'identifiants. Une valeur affichée entre dans la conversation et doit être considérée comme divulguée. Utiliser ~/.claude/bin/lire-secret.sh <fichier> [motif] : il montre les clés et une empreinte de chaque valeur, jamais la valeur. À distance, sans rien installer sur le serveur : ssh <hôte> bash -s -- <fichier> [motif] < ~/.claude/bin/lire-secret.sh"
+# L'analyse suit le tube : une lecture masquee avant l'ecran passe (garde-identifiants.py).
+if printf '%s' "$brut" | grep -qiE 'env|secret|credential|token|api.?key|netrc|npmrc|pgpass|id_(rsa|ecdsa|ed25519)|\.(pem|p12|pfx|key|jks|keystore)|claude\.json|hub-notify'; then
+  etape="$(CMD_BRUT="$brut" python3 "$HOME/.claude/hooks/garde-identifiants.py" 2>/dev/null)" \
+    || decide deny "Cette commande afficherait le contenu d'un fichier d'identifiants (étape en cause : ${etape:-inconnue}). Une valeur affichée entre dans la conversation et doit être considérée comme divulguée. Formes admises : un compte ou une présence (grep -c, grep -q, grep -l, test -s), les noms de clés seuls (grep -o '^[A-Z_]*=', cut -d= -f1, awk -F= '{print \$1}', sed 's/=.*/=<défini>/'), une empreinte (… | sha256sum), une sortie envoyée dans un fichier. Charger les valeurs dans un programme (source, --env-file, \$(…) non masqué) reste refusé. Sinon : ~/.claude/bin/lire-secret.sh <fichier> [motif] montre les clés et une empreinte de chaque valeur, jamais la valeur. À distance, sans rien installer sur le serveur : ssh <hôte> bash -s -- <fichier> [motif] < ~/.claude/bin/lire-secret.sh"
 fi
 
 # --- 0 bis. Substitution par motif non verifiee
@@ -102,6 +88,28 @@ if has 'git[[:space:]]+([^|;&]*[[:space:]])?clean[[:space:]]+-[a-z]*[fd]'; then
   decide ask "git clean supprime les fichiers non suivis, sans retour possible."
 fi
 
+# --- 3 bis. Ajout en bloc dans un worktree secondaire : il embarque ce que le poste
+# porte sans l'avoir choisi (liens, fichiers copies d'un autre chantier, sorties).
+ADD_BLOC='git[[:space:]]+(-C[[:space:]]+[^[:space:];&|]+[[:space:]]+)?add([[:space:]]+-[^[:space:];&|]*)*[[:space:]]+(-A|--all|\.)([[:space:];&|)]|$)'
+if has "${CMDPOS}${ADD_BLOC}"; then
+  dir="$(printf '%s' "$cmd" | grep -oE "$ADD_BLOC" | head -1 | sed -nE 's/^git[[:space:]]+-C[[:space:]]+([^[:space:]]+).*/\1/p')"
+  [ -z "$dir" ] && dir="$(printf '%s' "$cmd" | sed -E "s/$ADD_BLOC.*//" \
+    | grep -oE '(^|[;&|(])[[:space:]]*cd[[:space:]]+[^;&|[:space:]]+' | tail -1 | sed -E 's/.*cd[[:space:]]+//')"
+  dir="$(printf '%s' "$dir" | tr -d '\042\047')"; dir="${dir/#\~/$HOME}"
+  case "$dir" in /*) ;; "") dir="$cwd" ;; *) dir="$cwd/$dir" ;; esac
+  gd="$(git -C "$dir" rev-parse --absolute-git-dir 2>/dev/null || true)"
+  gc="$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [ -n "$gd" ] && [ -n "$gc" ] && [ "$gd" != "$gc" ]; then
+    decide deny "Worktree secondaire ($dir) : git add -A, git add . et git add --all embarquent tout ce que ce poste porte — liens, fichiers copiés d'un autre chantier, sorties. Ajouter fichier par fichier (git add <chemin> …), puis lire git status avant le commit."
+  fi
+fi
+
+# --- 3 ter. Attente de CI au premier plan : la session reste figee jusqu'a la fin du run
+if has "${CMDPOS}(timeout[[:space:]]+[0-9.]+[smh]?[[:space:]]+)?gh[[:space:]]+(run[[:space:]]+watch|pr[[:space:]]+checks[^|;&]*--watch)"; then
+  fond="$(printf '%s' "$input" | jq -r '.tool_input.run_in_background // false' 2>/dev/null)"
+  [ "$fond" = true ] || decide deny "Attente de CI au premier plan : la session reste figée jusqu'à la fin du run. Relancer la même commande avec run_in_background: true, et donner l'état tout de suite (gh run view, ou gh pr checks sans --watch)."
+fi
+
 # --- 4. Branche partagee sur un depot d'entreprise
 if has '(^|[^A-Za-z0-9_-])git[[:space:]]+([^|;&]*[[:space:]])?(commit|push)([^A-Za-z0-9_-]|$)'; then
   root="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)"
@@ -141,5 +149,9 @@ if has '(^|[^A-Za-z0-9_-])rm[[:space:]]'; then
     esac
   done <<< "$cibles"
 fi
+
+# --- 6. Test affaibli par le shell : meme controle que sur Edit et Write (garde-tests.sh)
+tests="$(printf '%s' "$input" | "$HOME/.claude/hooks/garde-tests.sh")"
+[ -n "$tests" ] && { printf '%s\n' "$tests"; exit 0; }
 
 exit 0
