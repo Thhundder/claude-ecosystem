@@ -1,0 +1,1 @@
+{ "name": "agents-vue", "version": "0.1.0", "description": "Panneau vivant des agents de la session : état, type, tâche, durée", "types": "./types/index.d.ts" }

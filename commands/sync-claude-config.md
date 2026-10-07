@@ -17,6 +17,7 @@ argument-hint: push | pull
 | `bin/` | ce que les hooks et l'indicateur appellent par chemin |
 | `gabarits/` | les gabarits que les hooks et les commandes citent par chemin |
 | `references/` | ce qui se lit à la demande, jamais chargé d'office (politique d'évals) |
+| `mods/` | les mods que `settings.json` charge par `CLAUDE_CODE_PLUGIN_DIRS` (sans leurs types, que Claude Code régénère) |
 | `installe.txt` | **la liste de ce qui est installé, et elle fait foi** — le `pull` réinstalle ce qui y figure et retire les liens qui n'y sont plus. Sans elle, il ne fait ni l'un ni l'autre |
 
 ## Ce qui n'est jamais touché
@@ -33,7 +34,7 @@ LIVE=~/.claude
 REPO=~/Documents/claude-ecosystem/config-claude
 ECO=~/Documents/claude-ecosystem
 FICHIERS=(CLAUDE.md settings.json lentilles.md)
-DOSSIERS=(hooks bin output-styles gabarits references)
+DOSSIERS=(hooks bin output-styles gabarits references mods)
 
 case "$MODE" in
   push)
@@ -45,6 +46,7 @@ case "$MODE" in
       [ -d "$LIVE/$d" ] || { echo "  -- $d/ absent"; continue; }
       rm -rf "${REPO:?}/$d"; mkdir -p "$REPO/$d"; cp -r "$LIVE/$d/." "$REPO/$d/"
       find "$REPO/$d" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null
+      find "$REPO/$d" -path "*/.claude-plugin/types" -type d -prune -exec rm -rf {} + 2>/dev/null
       echo "  ok  $d/ ($(ls "$LIVE/$d" | wc -l) fichiers)"
     done
     : > "$REPO/installe.txt"

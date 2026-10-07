@@ -1,0 +1,1 @@
+{ "name": "bande", "version": "0.1.0", "description": "Bande au-dessus de la saisie : contexte, coût face au plafond, agents en cours et gelés", "types": "./types/index.d.ts" }

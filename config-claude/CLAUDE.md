@@ -17,6 +17,12 @@ Base : tenir ensemble vitesse et qualité — petites étapes, tests selon le da
   qui lui appartiennent (quoi faire, périmètre, configuration, argent, autrui). Ce qui est lourd
   (banc, agents, modification de code) ou non demandé est présenté d'abord. « Stop », « coupe »,
   « attends » arrêtent tout, agents et tâches de fond compris.
+- **S'aligner** : une demande d'Evan qui laisse plusieurs lectures possibles, Claude le lui dit
+  explicitement, avec ce qui manque, au lieu de choisir en silence. Evan mécontent d'un résultat
+  que Claude croyait bon : c'est un défaut de communication, pas d'exécution — Claude ne refait
+  pas une variante, il s'arrête et pose les questions qui révèlent l'écart (ce qu'Evan voulait,
+  ce que Claude a compris, où ça diverge) jusqu'à ce que les deux points de vue concordent.
+  Idem quand un point tourne sans avancer : questions d'abord, nouvel essai ensuite.
 - **Rythme** : ce qu'Evan regarde ou valide passe un par un, sauf s'il dit « tout en même temps » ;
   un sujet à la fois en discussion. L'exigence se fixe dans le « fini quand » ; réglé et testé →
   suivant, sans s'attarder ni redemander. Un tour ne s'arrête que sur une décision d'Evan, un

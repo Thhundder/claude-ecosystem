@@ -1,6 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 365,
+  "env": {
+    "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/bande:~/.claude/mods/alignement:~/.claude/mods/agents-vue"
+  },
   "attribution": {
     "commit": "",
     "pr": ""
