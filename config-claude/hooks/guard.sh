@@ -154,4 +154,9 @@ fi
 tests="$(printf '%s' "$input" | "$HOME/.claude/hooks/garde-tests.sh")"
 [ -n "$tests" ] && { printf '%s\n' "$tests"; exit 0; }
 
+# --- 7. Commande lourde (emulateur, compilation, serveur, tests navigateur) : boite memoire
+# ou refus si la memoire manque. Le 07/10, deux coupures en une heure (garde-memoire.py).
+mem="$(printf '%s' "$input" | "$HOME/.claude/hooks/garde-memoire.py" 2>/dev/null)"
+[ -n "$mem" ] && { printf '%s\n' "$mem"; exit 0; }
+
 exit 0

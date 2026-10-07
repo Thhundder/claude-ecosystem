@@ -9,7 +9,8 @@ Base : tenir ensemble vitesse et qualité — petites étapes, tests selon le da
   (objectif, inclus, exclu, à quoi on reconnaît que c'est fini). Écrit depuis les mots d'Evan,
   validé par lui avant tout ; chaque ajout tracé au journal. On n'en sort jamais de soi-même.
 - **Plan** : un fichier plan vivant, global pour le chantier, puis un par fonctionnalité ; on suit
-  toujours une ligne écrite. Chaque étape dit « fini quand… » et « on arrête si… » ; ce qui a été
+  toujours une ligne écrite. Chaque étape est une case `- [ ]`, cochée `- [x]` une fois finie (la
+  bande au-dessus de la saisie en tire la progression), et dit « fini quand… » et « on arrête si… » ; ce qui a été
   tenté va au journal. Un chantier ou une fonctionnalité dont Claude propose le contenu : plan posé,
   GO attendu, jamais lancé dans le même tour. Une petite demande explicite d'Evan : une ligne au
   plan, faite dans le même tour.
@@ -55,8 +56,9 @@ Base : tenir ensemble vitesse et qualité — petites étapes, tests selon le da
   retour : ce qu'il a fait, relu dans sa transcription, et une vérification selon le danger.
 - Un agent relit tout son contexte à chaque tour : c'est là qu'est le coût.
 - Avant un lancement payant : estimation au prix du jour, fondée sur le coût mesuré du vol
-  précédent (`bin/cout-vol.py`) ; plafond d'Evan dans le plan ; « dépensé / plafond » à chaque
-  point ; arrêt à l'approche.
+  précédent (`bin/cout-vol.py`). Pas de plafond à demander : Evan n'en veut pas (dit trois fois) ;
+  s'il en donne un, « dépensé / plafond » à chaque point et arrêt à l'approche. La consommation
+  réelle se lit en direct (`/conso`, la bande).
 - Durée estimée sur des tâches comparables déjà faites ; si c'est long, le dire de soi-même avec
   la cause mesurée.
 - Lectures ciblées (une fonction, une section), sorties longues résumées ; deux commandes
@@ -100,6 +102,8 @@ avis. Les `.md` sont les fichiers de travail de Claude : supprimés dès qu'ils 
 | `hooks/veille-hook.sh` | une alerte par agent gelé ou workflow arrêté (`bin/veille-wf.py`) |
 | `hooks/contexte-hook.py` | contexte ≥ 600 k : journal à jour, session neuve proposée |
 | `hooks/garde-tests.sh` (+ `hooks/garde-tests-shell.py`) | confirmation avant d'affaiblir un test, éditeur ou shell |
+| `hooks/garde-memoire.py` (appelé par guard.sh et au démarrage) · `bin/memoire.py` · `bin/veilleur-memoire.py` (service `veilleur-memoire`) | commande lourde (émulateur, compilation, serveur de dev, tests navigateur) enfermée dans une boîte mémoire, refusée si la mémoire manque ; alerte au démarrage sous 3 Go ; veilleur hors Claude qui arrête dans l'ordre (émulateur, démons de compilation, serveurs de dev, navigateurs de test, conteneurs tess-*) sous 1,5 Go — jamais bureau, Chrome, sessions Claude, robots crypto |
+| mods `~/.claude/mods/` (bande, alignement, agents-vue) | bande : contexte, quotas d'abonnement, jetons du tour, plan k/n, agents, pannes, mémoire ; rappel de « S'aligner » sur un désaccord ; `/agents-vue` et `/conso` : jetons et temps par agent, détail dans `~/.claude/cache/conso/` |
 | `bin/journal.sh` · `bin/session.py` · `bin/lire-secret.sh` · `bin/ecran.mjs` · `bin/atlas.py` · `bin/cout-vol.py` | bloc d'état du journal · reprise · lecture de secrets sans valeur · maquette contre rendu · atlas · coût d'un vol |
 | `bin/barre.py` · `bin/barre-agents.py` · `bin/claude-hub-watcher.mjs` | barre du bas · lignes des agents · notification de fin de session |
 | `bin/journal-agents.py <session>` | journal horodaté des agents : durée, réponses, jetons relus, coût, temps à attendre le modèle (`--detail` : chaque appel) |

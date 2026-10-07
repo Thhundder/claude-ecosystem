@@ -1,0 +1,12 @@
+[Unit]
+Description=Veilleur mémoire : libère avant que le système tue la session (ordre dans ~/.claude/bin/memoire.py)
+
+[Service]
+ExecStart=/usr/bin/python3 %h/.claude/bin/veilleur-memoire.py
+Restart=always
+RestartSec=5
+OOMScoreAdjust=-500
+MemoryMax=200M
+
+[Install]
+WantedBy=default.target

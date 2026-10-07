@@ -1,35 +1,58 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface as Engine, Register } from 'claude-code'
+import type { EngineInterface as Engine, ModelUsage, Register, SessionRateLimit } from 'claude-code'
 
-import type { Mesure } from '../types'
+import type { Mesure, Plan, Quota } from '../types'
 
 const mesure = atom({ plugin: 'bande', key: 'mesure' } as const, null)
 const agents = atom({ plugin: 'bande', key: 'agents' } as const, { actifs: 0, anomalies: [] })
-const plafond = atom({ plugin: 'bande', key: 'plafond' } as const, null)
 const signalees = atom({ plugin: 'bande', key: 'signalees' } as const, [])
+const tour = atom({ plugin: 'bande', key: 'tour' } as const, { lus: 0, relus: 0, ecrits: 0 })
+const plan = atom({ plugin: 'bande', key: 'plan' } as const, null)
+const memoire = atom({ plugin: 'bande', key: 'memoire' } as const, null)
 
 const VEILLE = '.claude/bin/veille-wf.py'
 const ANOMALIE = /agent gelé|arrêté|agent seul muet/
 const ACTIFS = new Set(['pending', 'running', 'waiting'])
+const GO = 1024 ** 3
+const NOMS_QUOTA: Record<string, string> = { five_hour: '5 h', seven_day: 'semaine' }
 
-export const euros = (usd: number) => `${usd.toFixed(2).replace('.', ',')} $`
-
-export const kilo = (tokens: number) => `${Math.round(tokens / 1000)} k`
+export const kilo = (tokens: number) =>
+  tokens >= 1_000_000 ? `${(tokens / 1_000_000).toFixed(1).replace('.', ',')} M` : `${Math.round(tokens / 1000)} k`
 
 export const lignesAnomalies = (sortie: string) =>
   sortie
     .split('\n')
     .filter(ligne => ANOMALIE.test(ligne))
     .map(ligne => {
-      const [cles, texte] = ligne.includes('\t') ? ligne.split('\t', 2) : [ligne, ligne]
-      return { cles: [cles.trim()], texte: (texte ?? ligne).trim().replace(/\s{2,}/g, ' ') }
+      const [cles = ligne, texte = ligne] = ligne.includes('\t') ? ligne.split('\t', 2) : [ligne, ligne]
+      return { cles: [cles.trim()], texte: texte.trim().replace(/\s{2,}/g, ' ') }
     })
 
-export const lirePlafond = (args: string) => {
-  const brut = args.trim().replace(',', '.').replace(/\s*\$$/, '')
-  if (brut === '' || brut === 'off') return null
-  const n = Number(brut)
-  return Number.isFinite(n) && n > 0 ? n : undefined
+export const quotas = (limites: readonly SessionRateLimit[]): Quota[] =>
+  limites.filter(l => l.kind in NOMS_QUOTA).map(l => ({ kind: l.kind, pct: l.percentUsed }))
+
+export const compterPlan = (nom: string, texte: string): Plan | null => {
+  const faits = (texte.match(/^\s*[-*] \[[xX]\]/gm) ?? []).length
+  const restants = (texte.match(/^\s*[-*] \[ \]/gm) ?? []).length
+  return faits + restants === 0 ? null : { nom, faits, total: faits + restants }
+}
+
+export const barre = (faits: number, total: number, largeur = 10) => {
+  const pleins = Math.round((faits / total) * largeur)
+  return '▓'.repeat(pleins) + '░'.repeat(largeur - pleins)
+}
+
+export const disponible = (meminfo: string) => {
+  const m = meminfo.match(/^MemAvailable:\s+(\d+) kB/m)
+  return m ? (Number(m[1]) * 1024) / GO : null
+}
+
+const ajouterUsage = async ($: Engine, u: ModelUsage) => {
+  await update($, tour, t => ({
+    lus: t.lus + u.input_tokens + u.cache_creation_input_tokens,
+    relus: t.relus + u.cache_read_input_tokens,
+    ecrits: t.ecrits + u.output_tokens,
+  }))
 }
 
 const mesurer = async ($: Engine) => {
@@ -37,29 +60,28 @@ const mesurer = async ($: Engine) => {
   const valeur: Mesure = {
     tokens: usage.context.tokens ?? null,
     fenetre: usage.context.window,
-    usd: usage.cost?.usd ?? null,
+    quotas: quotas(usage.rateLimits),
   }
   await update($, mesure, () => valeur)
-  await alerterPlafond($, valeur.usd)
 }
 
-const alerterPlafond = async ($: Engine, usd: number | null) => {
-  const max = await read($, plafond)
-  if (max === null || usd === null) return
-  for (const seuil of [1, 0.8]) {
-    if (usd < max * seuil) continue
-    const cle = `plafond:${max}:${seuil}`
-    const deja = await read($, signalees)
-    if (deja.includes(cle)) return
-    await update($, signalees, liste => [...liste, cle])
-    $.ui.toast(
-      seuil === 1
-        ? `Plafond atteint : ${euros(usd)} dépensés sur ${euros(max)}`
-        : `80 % du plafond : ${euros(usd)} sur ${euros(max)}`,
-      { timeoutMs: 15000 },
-    )
-    return
-  }
+const lirePlan = async ($: Engine) => {
+  const dossier = `${await $.session.cwd()}/evan`
+  if (!(await $.fs.exists(dossier))) return update($, plan, () => null)
+  const plans = (await $.fs.list(dossier)).filter(f => /^PLAN.*\.md$/.test(f.name))
+  if (plans.length === 0) return update($, plan, () => null)
+  const dates = await Promise.all(plans.map(async f => ({ f, t: (await $.fs.stat(`${dossier}/${f.name}`)).mtimeMs ?? 0 })))
+  const recent = dates.sort((a, b) => b.t - a.t)[0]?.f.name
+  if (recent === undefined) return update($, plan, () => null)
+  const valeur = compterPlan(recent.replace(/^PLAN-?|\.md$/g, '') || 'plan', await $.fs.read(`${dossier}/${recent}`))
+  await update($, plan, () => valeur)
+}
+
+const lireMemoire = async ($: Engine) => {
+  const run = await $.process.run(['cat', '/proc/meminfo'], { timeoutMs: 2000 })
+  const go = disponible(run.stdout)
+  const avant = await read($, memoire)
+  if (go === null || avant === null || Math.abs(go - avant) >= 0.1) await update($, memoire, () => go)
 }
 
 const compter = async ($: Engine) => {
@@ -70,11 +92,7 @@ const compter = async ($: Engine) => {
 }
 
 const veiller = async ($: Engine) => {
-  const [cwd, sid, home] = await Promise.all([
-    $.session.cwd(),
-    $.session.id(),
-    $.env.get('HOME'),
-  ])
+  const [cwd, sid, home] = await Promise.all([$.session.cwd(), $.session.id(), $.env.get('HOME')])
   const projet = cwd.replace(/[/.]/g, '-')
   let anomalies: { cles: string[]; texte: string }[] = []
   try {
@@ -96,63 +114,81 @@ const veiller = async ($: Engine) => {
   $.ui.toast(`Veille : ${neuves.map(a => a.texte).join(' ; ')}`, { timeoutMs: 20000 })
 }
 
+const sansEchec = ($: Engine, travail: () => Promise<unknown>) => () =>
+  void travail().catch(err => $.ui.log(`bande: ${String(err).slice(0, 160)}`))
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: 'plafond',
-      description: 'Plafond de dépense de la session en dollars (/plafond 15, /plafond off)',
-      argumentHint: '<dollars|off>',
-    })
-    $.clock.every(60_000, () => void veiller($).catch(err => $.ui.log(`bande: ${String(err)}`)))
-    $.clock.every(5_000, () => void compter($).catch(err => $.ui.log(`bande: ${String(err)}`)))
-    void veiller($)
-    void mesurer($)
+    $.clock.every(60_000, sansEchec($, () => veiller($)))
+    $.clock.every(30_000, sansEchec($, () => lirePlan($)))
+    $.clock.every(5_000, sansEchec($, () => compter($)))
+    $.clock.every(5_000, sansEchec($, () => lireMemoire($)))
+    sansEchec($, () => veiller($))()
+    sansEchec($, () => mesurer($))()
+    sansEchec($, () => lirePlan($))()
+    sansEchec($, () => lireMemoire($))()
     return next(e)
   })
 
-  on('command.run', { command: 'plafond' }, async ($, e) => {
-    const valeur = lirePlafond(e.args)
-    if (valeur === undefined) return { text: `Plafond illisible : « ${e.args} ». Exemple : /plafond 15` }
-    await update($, plafond, () => valeur)
-    await mesurer($)
-    return { text: valeur === null ? 'Plafond retiré.' : `Plafond fixé à ${euros(valeur)}.` }
+  on('prompt.submit', async ($, e, next) => {
+    if (e.origin.kind === 'composer' || e.origin.kind === 'bridge') {
+      await update($, tour, () => ({ lus: 0, relus: 0, ecrits: 0 }))
+    }
+    return next(e)
+  })
+
+  on('turn.step', async function* ($, e, next) {
+    const reponse = yield* next(e)
+    if (reponse.usage) await ajouterUsage($, reponse.usage)
+    return reponse
   })
 
   on('session.measure', async ($, e, next) => {
     await update($, mesure, () => ({
       tokens: e.context.tokens ?? null,
       fenetre: e.context.window,
-      usd: e.cost?.usd ?? null,
+      quotas: quotas(e.rateLimits),
     }))
-    await alerterPlafond($, e.cost?.usd ?? null)
     return next(e)
   })
 
   on('turn.complete', async ($, e, next) => {
-    void veiller($)
+    sansEchec($, () => veiller($))()
+    sansEchec($, () => lirePlan($))()
     return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
-    const [m, a, max] = await Promise.all([read($, mesure), read($, agents), read($, plafond)])
+    const [m, a, t, p, go] = await Promise.all([
+      read($, mesure), read($, agents), read($, tour), read($, plan), read($, memoire),
+    ])
     if (m === null) return next(e)
     const { Box, Text } = $.ui.resolve(e)
 
     const pct = m.tokens === null ? null : Math.round((m.tokens / m.fenetre) * 100)
     const contexte = m.tokens === null ? 'contexte —' : `contexte ${kilo(m.tokens)} (${pct} %)`
     const lourd = m.tokens !== null && m.tokens >= 600_000
-    const cout = m.usd === null ? null : max === null ? euros(m.usd) : `${euros(m.usd)} / ${euros(max)}`
-    const cher = m.usd !== null && max !== null && m.usd >= max * 0.8
     const gel = a.anomalies.length
+    const basse = go !== null && go < 3
 
     return (
       <Box>
         <Text color={lourd ? 'warning' : undefined} dimColor={!lourd}>{contexte}</Text>
-        {cout !== null && <Text dimColor> · </Text>}
-        {cout !== null && <Text color={cher ? 'error' : undefined} dimColor={!cher}>{cout}</Text>}
+        {m.quotas.map(q => (
+          <Text key={q.kind} color={q.pct >= 80 ? 'warning' : undefined} dimColor={q.pct < 80}>
+            {' · '}quota {NOMS_QUOTA[q.kind]} {Math.round(q.pct)} %
+          </Text>
+        ))}
+        {t.relus + t.lus > 0 && (
+          <Text dimColor> · tour {kilo(t.relus)} relus, {kilo(t.lus)} lus, {kilo(t.ecrits)} écrits</Text>
+        )}
+        {p !== null && <Text dimColor> · plan {p.faits}/{p.total} {barre(p.faits, p.total)}</Text>}
         <Text dimColor> · agents {a.actifs}</Text>
         {gel > 0 && <Text color="error"> · {gel} en panne</Text>}
+        {go !== null && (
+          <Text color={basse ? 'error' : undefined} dimColor={!basse}> · mémoire {go.toFixed(1).replace('.', ',')} Go</Text>
+        )}
       </Box>
     )
   })

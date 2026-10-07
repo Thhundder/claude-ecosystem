@@ -1,8 +1,18 @@
-export type Mesure = { tokens: number | null; fenetre: number; usd: number | null }
+export type Quota = { kind: string; pct: number }
+export type Mesure = { tokens: number | null; fenetre: number; quotas: Quota[] }
 export type Agents = { actifs: number; anomalies: string[] }
+export type Tour = { lus: number; relus: number; ecrits: number }
+export type Plan = { nom: string; faits: number; total: number }
 
 declare module 'claude-code' {
   interface PluginState {
-    bande: { mesure: Mesure | null; agents: Agents; plafond: number | null; signalees: string[] }
+    bande: {
+      mesure: Mesure | null
+      agents: Agents
+      signalees: string[]
+      tour: Tour
+      plan: Plan | null
+      memoire: number | null
+    }
   }
 }
