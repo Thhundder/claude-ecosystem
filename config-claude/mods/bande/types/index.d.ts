@@ -13,6 +13,7 @@ declare module 'claude-code' {
       tour: Tour
       plan: Plan | null
       memoire: number | null
+      muet: { agent: string; s: number } | null
     }
   }
 }

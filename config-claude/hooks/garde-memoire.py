@@ -39,7 +39,12 @@ def journal(ligne):
         f.write(f'{datetime.datetime.now():%Y-%m-%d %H:%M:%S} {ligne}\n')
 
 
+def sans_citations(cmd):
+    return re.sub(r"'[^']*'|\"(\\\\.|[^\"\\\\])*\"", ' ', cmd)
+
+
 def classer(cmd):
+    cmd = sans_citations(cmd)
     trouves = [(nature, go) for nature, go, motif in LOURDES if re.search(motif, cmd)]
     if not trouves:
         return None

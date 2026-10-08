@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { barre, compterPlan, disponible, kilo, lignesAnomalies, quotas } from '../hooks/register'
+import { barre, compterPlan, disponible, kilo, lignesAnomalies, quotas, silences } from '../hooks/register'
 
 describe('veille', () => {
   test('ne garde que les anomalies, avec leurs clés', async () => {
@@ -50,5 +50,14 @@ describe('mémoire', () => {
   test('lit la mémoire disponible', async () => {
     expect(disponible('MemTotal: 16050100 kB\nMemAvailable:   10485760 kB\n')).toBe(10)
     expect(disponible('rien')).toBe(null)
+  })
+})
+
+describe('appel muet', () => {
+  test('ne retient que les appels silencieux au-delà du seuil', async () => {
+    const appels = [{ dernier: 0 }, { dernier: 250_000 }, { dernier: 299_000 }]
+    expect(silences(appels, 300_000, 60_000).length).toBe(1)
+    expect(silences(appels, 400_000, 60_000).length).toBe(3)
+    expect(silences([], 400_000, 60_000).length).toBe(0)
   })
 })

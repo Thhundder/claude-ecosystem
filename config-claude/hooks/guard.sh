@@ -112,10 +112,22 @@ fi
 
 # --- 4. Branche partagee sur un depot d'entreprise
 if has '(^|[^A-Za-z0-9_-])git[[:space:]]+([^|;&]*[[:space:]])?(commit|push)([^A-Za-z0-9_-]|$)'; then
-  root="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)"
+  # Le depot vise est celui du `cd` ou du `git -C` qui precede la publication, pas le dossier de la
+  # session : le 07/10, trois push sur main d'autres depots ont ete annonces « pms-ia » (audit A).
+  gitdir="$cwd"
+  avant="$(printf '%s' "$cmd" | tr '\n' ';' | grep -oE '.*git[[:space:]]+([^|;&]*[[:space:]])?(commit|push)' | head -1)"
+  vers="$(printf '%s' "$avant" | grep -oE '(^|[;&|][[:space:]]*)cd[[:space:]]+[^;&|[:space:]]+' | tail -1 | sed -E 's/.*cd[[:space:]]+//')"
+  opt="$(printf '%s' "$avant" | grep -oE 'git[[:space:]]+-C[[:space:]]+[^[:space:]]+' | tail -1 | awk '{print $3}')"
+  for x in "$vers" "$opt"; do
+    [ -n "$x" ] || continue
+    x="$(printf '%s' "$x" | tr -d "\"'")"
+    case "$x" in "~"*) x="$HOME${x#\~}" ;; '$HOME'*) x="$HOME${x#\$HOME}" ;; esac
+    case "$x" in /*) gitdir="$x" ;; *) gitdir="$gitdir/$x" ;; esac
+  done
+  root="$(git -C "$gitdir" rev-parse --show-toplevel 2>/dev/null || true)"
   case "${root:-}" in
     "$HOME"/Documents/Xeko/*)
-      branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+      branch="$(git -C "$gitdir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
       target=""
       # On ne cherche la branche visee QUE dans la commande de publication elle-meme.
       # Chercher le mot partout attrapait « reemis a la main » dans une note de travail

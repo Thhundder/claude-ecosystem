@@ -9,6 +9,7 @@ const signalees = atom({ plugin: 'bande', key: 'signalees' } as const, [])
 const tour = atom({ plugin: 'bande', key: 'tour' } as const, { lus: 0, relus: 0, ecrits: 0 })
 const plan = atom({ plugin: 'bande', key: 'plan' } as const, null)
 const memoire = atom({ plugin: 'bande', key: 'memoire' } as const, null)
+const muet = atom({ plugin: 'bande', key: 'muet' } as const, null)
 
 const VEILLE = '.claude/bin/veille-wf.py'
 const ANOMALIE = /agent gelé|arrêté|agent seul muet/
@@ -117,8 +118,33 @@ const veiller = async ($: Engine) => {
 const sansEchec = ($: Engine, travail: () => Promise<unknown>) => () =>
   void travail().catch(err => $.ui.log(`bande: ${String(err).slice(0, 160)}`))
 
+export const depuis = (s: number) => (s < 60 ? `${s} s` : `${Math.round(s / 60)} min`)
+
+export const silences = <T extends { dernier: number }>(appels: T[], maintenant: number, seuilMs: number) =>
+  appels.filter(a => maintenant - a.dernier >= seuilMs)
+
+type Appel = { dernier: number; agent: string; signale: boolean }
+const enCours = new Map<string, Appel>()
+const reglage = { seuilMs: 300_000 }
+
+const surveiller = async ($: Engine) => {
+  const t = await $.clock.now()
+  const muets = silences([...enCours.values()], t, reglage.seuilMs)
+  const pire = [...muets].sort((a, b) => a.dernier - b.dernier)[0]
+  const valeur = pire ? { agent: pire.agent, s: Math.round((t - pire.dernier) / 1000) } : null
+  const avant = await read($, muet)
+  if (JSON.stringify(avant) !== JSON.stringify(valeur)) await update($, muet, () => valeur)
+  for (const a of muets) {
+    if (a.signale) continue
+    a.signale = true
+    $.ui.toast(`Appel au modèle muet depuis ${depuis(Math.round((t - a.dernier) / 1000))} (${a.agent}) : bloqué ?`, { timeoutMs: 30000 })
+  }
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    reglage.seuilMs = Number((await $.env.get('BANDE_SILENCE_S')) ?? 300) * 1000
+    $.clock.every(5_000, sansEchec($, () => surveiller($)))
     $.clock.every(60_000, sansEchec($, () => veiller($)))
     $.clock.every(30_000, sansEchec($, () => lirePlan($)))
     $.clock.every(5_000, sansEchec($, () => compter($)))
@@ -138,9 +164,23 @@ export const register: Register = on => {
   })
 
   on('turn.step', async function* ($, e, next) {
-    const reponse = yield* next(e)
-    if (reponse.usage) await ajouterUsage($, reponse.usage)
-    return reponse
+    const cle = `${e.turnId}:${e.index}:${e.agentId ?? ''}`
+    const appel = { dernier: await $.clock.now(), agent: e.agentId ? `agent ${e.agentId.slice(0, 9)}` : 'session principale', signale: false }
+    enCours.set(cle, appel)
+    try {
+      const flux = next(e)
+      let pas = await flux.next()
+      while (!pas.done) {
+        appel.dernier = await $.clock.now()
+        appel.signale = false
+        yield pas.value
+        pas = await flux.next()
+      }
+      if (pas.value.usage) await ajouterUsage($, pas.value.usage)
+      return pas.value
+    } finally {
+      enCours.delete(cle)
+    }
   })
 
   on('session.measure', async ($, e, next) => {
@@ -160,8 +200,8 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
-    const [m, a, t, p, go] = await Promise.all([
-      read($, mesure), read($, agents), read($, tour), read($, plan), read($, memoire),
+    const [m, a, t, p, go, silence] = await Promise.all([
+      read($, mesure), read($, agents), read($, tour), read($, plan), read($, memoire), read($, muet),
     ])
     if (m === null) return next(e)
     const { Box, Text } = $.ui.resolve(e)
@@ -186,6 +226,7 @@ export const register: Register = on => {
         {p !== null && <Text dimColor> · plan {p.faits}/{p.total} {barre(p.faits, p.total)}</Text>}
         <Text dimColor> · agents {a.actifs}</Text>
         {gel > 0 && <Text color="error"> · {gel} en panne</Text>}
+        {silence !== null && <Text color="error"> · appel muet depuis {depuis(silence.s)} ({silence.agent})</Text>}
         {go !== null && (
           <Text color={basse ? 'error' : undefined} dimColor={!basse}> · mémoire {go.toFixed(1).replace('.', ',')} Go</Text>
         )}
