@@ -82,7 +82,13 @@ def fini(chemin):
         except ValueError: continue
         if r.get('type') != 'assistant':
             continue
-        return (r.get('message') or {}).get('stop_reason') in ('end_turn', 'stop_sequence')
+        m = r.get('message') or {}
+        # Un agent qui rend son rapport par l'outil SubagentHandback s'arrete la, sans « end_turn » :
+        # sans ce cas, les 3 agents d'audit du 07/10 etaient signales muets des heures apres.
+        if any(isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') == 'SubagentHandback'
+               for b in m.get('content') or []):
+            return True
+        return m.get('stop_reason') in ('end_turn', 'stop_sequence')
     return False
 
 
