@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Recompose une session Claude Code en Markdown : demandé, exécuté, répondu, tour par tour.
 
-Matière de /reprendre et de l'audit « demandé contre livré, mesuré contre exécuté ».
+Matière des sessions d'agents (agent-session.py, mod agents-sessions).
 Le transcript brut mêle résultats d'outils, rappels système et résumés de compactage ;
 on ne garde que ce que l'utilisateur a tapé, les appels d'outils de Claude et son dernier
 texte à chaque tour, puis on relève ses rétractations. Le filtrage des demandes suit

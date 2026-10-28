@@ -1,0 +1,1 @@
+{ "name": "replis", "version": "0.1.0", "author": { "name": "Evan" }, "description": "Replie en une ligne les avis de fin d'agent, de tâche de fond et les rapports d'agents ; ctrl+o montre l'original" }

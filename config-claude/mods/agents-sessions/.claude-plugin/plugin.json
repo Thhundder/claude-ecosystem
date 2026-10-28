@@ -1,0 +1,1 @@
+{ "name": "agents-sessions", "version": "0.1.0", "description": "Remplace l'outil Agent par une vraie session nommée « AGENT · … », reprenable par son nom", "author": { "name": "Evan" } }

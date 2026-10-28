@@ -1,0 +1,1 @@
+{ "name": "chaud", "version": "0.1.0", "description": "Garde au chaud le cache de la session principale pendant qu'elle attend un agent ou un shell de fond", "author": { "name": "Evan" } }

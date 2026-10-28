@@ -15,9 +15,13 @@ EXT='\.(tsx|jsx|vue|svelte)$'
 ROUTE='(^|/)(app|pages|routes|screens|views)/.*/(page|index|layout|route)\.(tsx|jsx|vue|svelte)$'
 MIN_LIGNES=150
 MIN_PCT=60
+# $2 : debut du tour (secondes epoch). Seuls comptent les fichiers modifies depuis ;
+# sans lui, des fichiers jamais enregistres laisses par un tour ancien bloquaient chaque tour.
+DEBUT="${2:-}"
+du_tour() { [ -z "$DEBUT" ] && return 0; [ "$(stat -c %Y "$1" 2>/dev/null || echo 0)" -ge "$DEBUT" ]; }
 
 neufs="$( { git diff --cached --name-only --diff-filter=A; git ls-files --others --exclude-standard; } 2>/dev/null \
-          | grep -E "$EXT" | sort -u )"
+          | grep -E "$EXT" | sort -u | while IFS= read -r f; do du_tour "$f" && printf '%s\n' "$f"; done )"
 nb_neufs="$(printf '%s' "$neufs" | grep -c . )"
 nb_routes="$(printf '%s\n' "$neufs" | grep -cE "$ROUTE")"
 
@@ -30,6 +34,7 @@ else
   while IFS=$'\t' read -r add del f; do
     case "$f" in *.tsx|*.jsx|*.vue|*.svelte|*.css) ;; *) continue ;; esac
     [ "$add" = "-" ] && continue
+    du_tour "$f" || continue
     tot=$((add + del)); [ "$tot" -lt "$MIN_LIGNES" ] && continue
     n="$(wc -l < "$f" 2>/dev/null || echo 0)"; [ "${n:-0}" -lt 1 ] && continue
     if [ $((tot * 100 / n)) -ge "$MIN_PCT" ]; then

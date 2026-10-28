@@ -1,6 +1,13 @@
-import type { EngineInterface as Engine, Register } from 'claude-code'
+import type { EngineInterface as Engine, ModelUsage, Register, SessionMessage } from 'claude-code'
+
+import { ENTETE, derniersEchanges, formaterEchange, horodatage, masquer } from './bof'
 
 const DELAI_MS = 5000
+// Tri désaccord sur Opus : meilleur que Haiku aux deux tirages (evan/agents/alignement-opus/MESURE-OPUS.txt).
+export const MODELE_ECART = 'claude-opus-5-5'
+export const DELAI_ECART_MS = 15000
+
+type Compte = (u: ModelUsage) => void
 
 export const CONSIGNE = [
   "Tu classes un message qu'un développeur, Evan, envoie à son assistant de code.",
@@ -11,6 +18,9 @@ export const CONSIGNE = [
   'NEUTRE : tout le reste, même s’il y a « non », un problème ou de l’agacement qui ne vise pas l’assistant :',
   'nouvelle consigne, question, demande de vérification, bug du produit ou d’un service tiers signalé,',
   'choix entre options, validation, sujet écarté.',
+  'Une nouvelle consigne ou un changement de ce qu’Evan veut n’est pas un reproche, même dit sèchement.',
+  'Ne pas comprendre un message du produit, d’un service ou d’une autre session n’est pas ne pas comprendre l’assistant.',
+  'Une question sur l’avancement ou sur la cause d’un problème n’est pas un reproche.',
   'Exemples :',
   '« non, je voulais le bouton à droite, pas en haut » → ECART',
   '« t’as encore modifié le mauvais fichier » → ECART',
@@ -19,6 +29,14 @@ export const CONSIGNE = [
   '« le paiement Stripe renvoie une erreur 500, regarde » → NEUTRE',
   '« fais tout toi-même et préviens-moi quand c’est fini » → NEUTRE',
   '« pourquoi le cache expire au bout de 5 min ? » → NEUTRE',
+  '« d’ailleurs je ne veux plus voir ça en bas » → NEUTRE',
+  '« tu ne commit rien mais vas-y, lance » → NEUTRE',
+  '« le titre d’intro on l’enlève, ça sert à rien » → NEUTRE',
+  '« toujours pas fini ? il y a un souci ? » → NEUTRE',
+  '« tu sais pourquoi la page n’affiche pas le plan ? t’as regardé ? » → NEUTRE',
+  '« le site affiche "accès refusé", pourquoi ? je comprends pas, regarde » → NEUTRE',
+  '« l’autre session ne comprend pas ce que je veux, fais une commande pour lui réexpliquer » → NEUTRE',
+  '« la V2 est bien, juste l’animation reste au début, rallonge-la » → NEUTRE',
   'Réponds par un seul mot : ECART ou NEUTRE.',
 ].join('\n')
 
@@ -50,7 +68,7 @@ export const RAPPEL_QUESTION = [
 
 export const estQuestion = (texte: string) => /^\W*QUESTION/i.test(texte.trim())
 
-export const classerQuestion = async ($: Engine, texte: string) => {
+export const classerQuestion = async ($: Engine, texte: string, compte?: Compte) => {
   const reponse = await $.model.complete({
     model: 'haiku',
     system: CONSIGNE_QUESTION,
@@ -59,6 +77,7 @@ export const classerQuestion = async ($: Engine, texte: string) => {
     timeoutMs: DELAI_MS,
   })
   if (!reponse.isAnswered) throw new Error(reponse.reason)
+  compte?.(reponse.usage)
   return estQuestion(reponse.text)
 }
 
@@ -87,15 +106,16 @@ export const lireSansReponse = (texte: string): string[] => {
 export const noteOubli = (questions: string[]) =>
   `Questions qui semblent sans réponse (contrôle automatique, peut se tromper) :\n${questions.map(q => `- ${q}`).join('\n')}`
 
-export const juger = async ($: Engine, message: string, reponse: string) => {
+export const juger = async ($: Engine, message: string, reponse: string, compte?: Compte) => {
   const r = await $.model.complete({
-    model: 'haiku',
+    model: 'opus',
     system: CONSIGNE_JUGE,
     prompt: `Message d'Evan :\n"""${message.slice(0, 3000)}"""\nRéponse de l'assistant :\n"""${reponse.slice(0, 6000)}"""`,
     maxTokens: 300,
     timeoutMs: 8000,
   })
   if (!r.isAnswered) throw new Error(r.reason)
+  compte?.(r.usage)
   return lireSansReponse(r.text)
 }
 
@@ -107,7 +127,6 @@ export const aClasser = (texte: string) => {
 const MARQUEURS = new RegExp(
   [
     "(pas|rien) compris",
-    "comprends? (pas|rien)",
     "je suis perdu",
     "je t'(ai|avais) (dit|dis|demandé)",
     "pourquoi tu",
@@ -120,7 +139,6 @@ const MARQUEURS = new RegExp(
     "tu tournes? en rond|tu tournes? en boucle",
     "tu me parles que",
     "de quoi tu parles",
-    "^\\s*(non|nn|mais non)\\b(?![,.]?\\s*(on (laisse|garde)|merci|c'est bon))",
   ].join('|'),
   'i',
 )
@@ -129,29 +147,70 @@ export const marqueur = (texte: string) => MARQUEURS.test(texte.replace(/[’`]/
 
 export const lireVerdict =(texte: string) => /^\W*ECART/i.test(texte.trim())
 
-export const classer = async ($: Engine, texte: string) => {
+export const classer = async ($: Engine, texte: string, compte?: Compte) => {
   const reponse = await $.model.complete({
-    model: 'haiku',
+    model: MODELE_ECART,
     system: CONSIGNE,
     prompt: `Message :\n"""\n${texte.slice(0, 2000)}\n"""`,
     maxTokens: 5,
-    timeoutMs: DELAI_MS,
+    timeoutMs: DELAI_ECART_MS,
   })
   if (!reponse.isAnswered) throw new Error(reponse.reason)
+  compte?.(reponse.usage)
   return lireVerdict(reponse.text)
+}
+
+export const ALIGNEMENT = '.claude/retours/ALIGNEMENT.txt'
+export const RETOURS = '.claude/retours/RETOURS.txt'
+export type Type = 'désaccord' | 'question' | 'question oubliée'
+
+export const court = (texte: string, n = 300) => {
+  const t = texte.replace(/<pasted_content[\s\S]*?<\/pasted_content[^>]*>/g, '[collé]').replace(/\s+/g, ' ').trim()
+  return t.length > n ? `${t.slice(0, n)}…` : t
+}
+
+export const ligneAlignement = (o: { quand: Date; session: string; depot: string; type: Type; texte: string }) =>
+  masquer(`${horodatage(o.quand)}\t${o.session}\t${o.depot}\t${o.type}\t${court(o.texte)}\n`)
+
+export const entreeAuto = (o: { quand: Date; texte: string; session: string; dossier: string; messages: readonly SessionMessage[] }) => {
+  const echanges = derniersEchanges(o.messages, 3)
+  const corps = echanges.map((e, i) => formaterEchange(e, i + 1)).join('\n\n')
+  return masquer(
+    `${ENTETE}${horodatage(o.quand)} auto =====\n` +
+      `Retour d'Evan (auto : désaccord repéré par le mod alignement) : ${o.texte.trim()}\n` +
+      `Session : ${o.session}\nDossier : ${o.dossier}\n` +
+      `--- ${echanges.length} derniers échanges ---\n${corps}\n\n`,
+  )
+}
+
+const ajouter = async ($: Engine, fichier: string, texte: string) => {
+  const home = (await $.env.get('HOME')) ?? ''
+  const run = await $.process.run(['sh', '-c', 'mkdir -p "$(dirname "$1")" && cat >> "$1"', 'alignement', `${home}/${fichier}`], { stdin: texte, timeoutMs: 10000 })
+  if (run.exitCode !== 0) throw new Error(run.stderr.trim() || String(run.exitCode))
+}
+
+export const noter = async ($: Engine, types: Type[], texte: string, messages?: readonly SessionMessage[]) => {
+  if (types.length === 0) return
+  const quand = new Date()
+  const [session, depot, dossier] = await Promise.all([$.session.id(), $.session.root(), $.session.cwd()])
+  await ajouter($, ALIGNEMENT, types.map(type => ligneAlignement({ quand, session, depot, type, texte })).join(''))
+  if (types.includes('désaccord')) {
+    await ajouter($, RETOURS, entreeAuto({ quand, texte, session, dossier, messages: messages ?? (await $.session.messages()) }))
+  }
 }
 
 const banc = async ($: Engine, chemin: string) => {
   const lignes = JSON.parse(await $.fs.read(chemin)) as { i?: number; texte?: string; evan?: string; attendu: string }[]
-  const sortie: { i: number; attendu: string; ecart: boolean | null; question: boolean | null; ms: number }[] = []
+  const sortie: { i: number; attendu: string; ecart: boolean | null; question: boolean | null; ms: number; jetons: { ecart?: ModelUsage; question?: ModelUsage } }[] = []
   for (const [n, ligne] of lignes.entries()) {
     const texte = ligne.texte ?? ligne.evan ?? ''
     const debut = await $.clock.now()
+    const jetons: { ecart?: ModelUsage; question?: ModelUsage } = {}
     const [ecart, question] = await Promise.all([
-      classer($, texte).catch(() => null),
-      classerQuestion($, texte).catch(() => null),
+      classer($, texte, u => (jetons.ecart = u)).catch(() => null),
+      classerQuestion($, texte, u => (jetons.question = u)).catch(() => null),
     ])
-    sortie.push({ i: ligne.i ?? n, attendu: ligne.attendu, ecart, question, ms: (await $.clock.now()) - debut })
+    sortie.push({ i: ligne.i ?? n, attendu: ligne.attendu, ecart, question, ms: (await $.clock.now()) - debut, jetons })
   }
   const cible = chemin.replace(/\.json$/, '.resultats.json')
   await $.fs.write(cible, JSON.stringify(sortie))
@@ -168,22 +227,7 @@ export const register: Register = on => {
       description: 'Banc du détecteur de désaccord sur un fichier JSON de messages étiquetés',
       argumentHint: '<fichier.json>',
     })
-    await $.command.register({ name: 'banc-fin', description: 'Juge des fins de tour réelles', argumentHint: '<seq.json>' })
     return next(e)
-  })
-
-  on('command.run', { command: 'banc-fin' }, async ($, e) => {
-    const seq = JSON.parse(await $.fs.read(e.args.trim())) as { evan: string; claude: string }[]
-    const sortie: { tour: number; pose: boolean; sans: string[] | null; ms: number }[] = []
-    for (const [tour, t] of seq.entries()) {
-      const debut = await $.clock.now()
-      const pose = poseQuestion(t.evan)
-      const sans = pose ? await juger($, t.evan, t.claude).catch(() => null) : []
-      sortie.push({ tour, pose, sans, ms: (await $.clock.now()) - debut })
-    }
-    const cible = e.args.trim().replace(/\.json$/, '.juge.json')
-    await $.fs.write(cible, JSON.stringify(sortie, null, 1))
-    return { text: `Banc fini : ${cible}` }
   })
 
   on('command.run', { command: 'banc-alignement' }, async ($, e) => {
@@ -201,31 +245,36 @@ export const register: Register = on => {
     oubliees = []
     const sur = <T>(p: Promise<T>, defaut: T) =>
       p.catch(erreur => {
-        $.ui.log(`alignement: classement impossible (${String(erreur).slice(0, 120)})`)
+        $.ui.log(`alignement: classement impossible (${String(erreur).slice(0, 120)})`, { to: 'debug' })
         return defaut
       })
     const [ecartModele, question] = await Promise.all([
       marqueur(e.text) ? Promise.resolve(true) : sur(classer($, e.text), false),
       sur(classerQuestion($, e.text), false),
     ])
+    const types: Type[] = [...(ecartModele ? ['désaccord' as const] : []), ...(question ? ['question' as const] : [])]
     const ajouts = [...(ecartModele ? [RAPPEL] : []), ...(question ? [RAPPEL_QUESTION] : []), ...rappelOubli]
     if (ajouts.length === 0) return next(e)
-    $.ui.status(`alignement : rappel joint (${[ecartModele && 'désaccord', question && 'question', rappelOubli.length > 0 && 'questions oubliées'].filter(Boolean).join(', ')})`)
+    $.ui.log(`alignement : rappel joint (${[...types, ...(rappelOubli.length > 0 ? ['questions oubliées'] : [])].join(', ')})`, { to: 'debug' })
+    void noter($, types, e.text).catch(erreur => $.ui.log(`alignement : écriture impossible (${String(erreur).slice(0, 120)})`, { to: 'debug' }))
     return next({ ...e, context: [...(e.context ?? []), ...ajouts] })
   })
 
   on('turn.complete', async ($, e, next) => {
-    $.ui.status(undefined)
     const r = await next(e)
     if (e.agentId !== undefined || e.reason !== 'answer' || !poseQuestion(dernierMessage) || !r.text.trim()) return r
     try {
-      const sans = await juger($, dernierMessage, r.text)
+      const message = dernierMessage
+      const sans = await juger($, message, r.text)
       dernierMessage = ''
       if (sans.length === 0) return r
       oubliees = sans
+      void noter($, ['question oubliée'], `${message} → sans réponse : ${sans.join(' ; ')}`).catch(erreur =>
+        $.ui.log(`alignement : écriture impossible (${String(erreur).slice(0, 120)})`, { to: 'debug' }),
+      )
       return { ...r, text: noteOubli(sans) }
     } catch (erreur) {
-      $.ui.log(`alignement: contrôle de fin de tour impossible (${String(erreur).slice(0, 120)})`)
+      $.ui.log(`alignement: contrôle de fin de tour impossible (${String(erreur).slice(0, 120)})`, { to: 'debug' })
       return r
     }
   })

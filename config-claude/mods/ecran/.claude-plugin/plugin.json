@@ -1,0 +1,1 @@
+{ "name": "ecran", "version": "0.1.0", "description": "Panneau « où on en est », ligne sous la saisie et police réduite des petites fenêtres kitty", "types": "./types/index.d.ts" }

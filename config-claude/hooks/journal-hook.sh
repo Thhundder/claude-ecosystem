@@ -58,7 +58,14 @@ $tete"
 
     # --- pas d'interface neuve sans reference visuelle
     if [ ! -f "$C/$sid.front" ]; then
-      front="$("$HOME"/.claude/bin/front-seuil.sh "$root" 2>/dev/null)"; code=$?
+      # debut du tour = dernier message reel de l'utilisateur (ni resultat d'outil, ni rappel systeme)
+      debut=""
+      if [ -n "$tr" ] && [ -f "$tr" ]; then
+        debut="$(grep -F '"type":"user"' "$tr" | jq -r 'select(.type=="user" and (.isMeta|not)
+          and (.message.content | type=="string" or (type=="array" and all(.[]; .type!="tool_result"))))
+          | .timestamp | sub("\\.[0-9]+Z$";"Z") | fromdateiso8601' 2>/dev/null | tail -1)"
+      fi
+      front="$("$HOME"/.claude/bin/front-seuil.sh "$root" ${debut:+"$debut"} 2>/dev/null)"; code=$?
       if [ "$code" = 2 ]; then
         touch "$C/$sid.front"
         quoi="$(printf '%s' "$front" | cut -d'|' -f1)"

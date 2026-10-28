@@ -18,7 +18,11 @@ case "$tool" in Edit|Write|MultiEdit|Bash) ;; *) exit 0 ;; esac
 
 TEST='(\.(test|spec)\.[A-Za-z0-9]+$|(^|/)(e2e|test|tests|__tests__|cypress|playwright)/)'
 
-decide() { jq -nc --arg d "$1" --arg r "$2" \
+decide() { d="$1"; r="$2"
+  if [ "$d" = ask ] && [ -f "$HOME/.claude/absent" ]; then
+    d=deny; r="Mode absent (Evan dort) : $r Refusé sans lui ; continue autrement et note-le pour son retour."
+  fi
+  jq -nc --arg d "$d" --arg r "$r" \
   '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}'
   exit 0
 }

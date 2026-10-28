@@ -12,7 +12,11 @@ brut="$cmd"
 cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)"
 [ -z "$cwd" ] && cwd="$PWD"
 
-decide() { jq -nc --arg d "$1" --arg r "$2" \
+decide() { d="$1"; r="$2"
+  if [ "$d" = ask ] && [ -f "$HOME/.claude/absent" ]; then
+    d=deny; r="Mode absent (Evan dort) : $r Refusé sans lui ; continue autrement et note-le pour son retour."
+  fi
+  jq -nc --arg d "$d" --arg r "$r" \
   '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}'
   exit 0
 }
@@ -102,6 +106,12 @@ if has "${CMDPOS}${ADD_BLOC}"; then
   if [ -n "$gd" ] && [ -n "$gc" ] && [ "$gd" != "$gc" ]; then
     decide deny "Worktree secondaire ($dir) : git add -A, git add . et git add --all embarquent tout ce que ce poste porte — liens, fichiers copiés d'un autre chantier, sorties. Ajouter fichier par fichier (git add <chemin> …), puis lire git status avant le commit."
   fi
+fi
+
+# --- 3 bis b. Worktree cree a la main : il nait hors de worktrees/<sujet>/ et sans SUJET.md,
+# et personne ne sait plus quand le retirer (85 worktrees en vrac au 27/10/2026).
+if has "${CMDPOS}git[[:space:]]+(-C[[:space:]]+[^[:space:];&|]+[[:space:]]+)?worktree[[:space:]]+add([[:space:]]|$)"; then
+  decide deny "Un worktree naît par ~/.claude/bin/worktree.py neuf <dépôt> <sujet> <nom> <branche> --pourquoi \"<texte>\" [--base <ref>] : il arrive dans <parent du dépôt>/worktrees/<sujet>/<nom> (pour Xeko : ~/Documents/Xeko/worktrees/<sujet>/) et sa ligne s'ajoute au SUJET.md (pourquoi, branche, session, quand supprimer). Fin du chantier : ~/.claude/bin/worktree.py fin <sujet> retire ceux qui sont propres et poussés, et liste le reste pour Evan."
 fi
 
 # --- 3 ter. Attente de CI au premier plan : la session reste figee jusqu'a la fin du run

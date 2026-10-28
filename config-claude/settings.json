@@ -2,7 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "cleanupPeriodDays": 365,
   "env": {
-    "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/bande:~/.claude/mods/alignement:~/.claude/mods/agents-vue"
+    "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/bande:~/.claude/mods/alignement:~/.claude/mods/relais:~/.claude/mods/ecran:~/.claude/mods/oui-auto:~/.claude/mods/replis:~/.claude/mods/chaud:~/.claude/mods/resume-auto:~/.claude/mods/agents-sessions:~/.claude/mods/titres:~/.claude/mods/bof:~/.claude/mods/relance",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus"
   },
   "attribution": {
     "commit": "",
@@ -91,13 +92,18 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME\"/.claude/bin/barre.py --fin",
+            "timeout": 5
+          }
+        ]
+      }
     ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "\"$HOME\"/.claude/bin/barre.py",
-    "padding": 0,
-    "refreshInterval": 2
   },
   "subagentStatusLine": {
     "type": "command",
@@ -113,7 +119,7 @@
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
-  "theme": "dark",
+  "theme": "custom:test-theme",
   "skipAutoPermissionPrompt": true,
   "autoMode": {
     "allow": [
@@ -132,5 +138,6 @@
       "**Secrets**: ne jamais afficher la valeur d'un identifiant, seulement son existence.",
       "**Garde-fous**: guard.sh sur Bash (identifiants, substitutions, git destructif, déploiements, branches partagées, effacement hors périmètre) et garde-tests.sh sur les éditions de fichiers de test (skip, only, assertion retirée). En dehors de ce qu'ils interceptent, aucune confirmation ne doit être sollicitée."
     ]
-  }
+  },
+  "crossSessionInbound": "accept"
 }

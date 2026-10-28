@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
+import { disponibleGo, juger, lourde } from '../hooks/memoire'
 import { barre, compterPlan, disponible, kilo, lignesAnomalies, quotas, silences } from '../hooks/register'
 
 describe('veille', () => {
@@ -59,5 +60,30 @@ describe('appel muet', () => {
     expect(silences(appels, 300_000, 60_000).length).toBe(1)
     expect(silences(appels, 400_000, 60_000).length).toBe(3)
     expect(silences([], 400_000, 60_000).length).toBe(0)
+  })
+})
+
+describe('garde mémoire', () => {
+  test('sous 3 Go : tout est refusé sauf lire et arrêter', async () => {
+    expect(juger('Agent', undefined, 2.5)).toContain('refusé')
+    expect(juger('Edit', undefined, 2.5)).toContain('refusé')
+    expect(juger('Bash', 'npm test', 2.5)).toContain('refusé')
+    expect(juger('Read', undefined, 2.5)).toBeNull()
+    expect(juger('TaskStop', undefined, 2.5)).toBeNull()
+    expect(juger('Bash', 'ps aux | grep node | head', 2.5)).toBeNull()
+    expect(juger('Bash', 'kill 1234 && free -m', 2.5)).toBeNull()
+    expect(juger('Bash', 'kill 1234; npm run dev', 2.5)).toContain('refusé')
+  })
+  test('au-dessus : une commande lourde refusée si elle laisse moins de 3 Go', async () => {
+    expect(juger('Bash', 'npx tsc --noEmit', 5)).toContain('vérification de types')
+    expect(juger('Bash', 'npx tsc --noEmit', 6)).toBeNull()
+    expect(juger('Bash', 'emulator -avd Pixel', 7)).toContain('émulateur')
+    expect(juger('Bash', 'echo "npm run dev"', 3.5)).toBeNull()
+    expect(juger('Agent', undefined, 3.5)).toBeNull()
+    expect(lourde('cd app && bun run dev')?.[0]).toBe('serveur de développement')
+  })
+  test('lecture de /proc/meminfo', async () => {
+    expect(disponibleGo('MemTotal: 16000000 kB\nMemAvailable:    3145728 kB\n')).toBe(3)
+    expect(disponibleGo('rien')).toBeNull()
   })
 })

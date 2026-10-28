@@ -1,0 +1,1 @@
+{ "name": "resume-auto", "version": "0.1.0", "description": "Résumé automatique au seuil, dès la fin du tour, même avec des agents en cours ; lancements mis en file puis relancés", "author": { "name": "Evan" } }

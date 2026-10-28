@@ -1,0 +1,9 @@
+{
+  "name": "relais",
+  "version": "0.2.0",
+  "description": "Passe le rapport d un agent au suivant sans la session principale, et signale un agent gelé",
+  "userConfig": {
+    "rappelMinutes": { "type": "number", "title": "Silence avant rappel (min)", "description": "Minutes sans signe de vie avant de rappeler l'agent", "default": 10 },
+    "relanceMinutes": { "type": "number", "title": "Silence avant signalement (min)", "description": "Minutes sans signe de vie avant de signaler l agent à la session principale", "default": 20 }
+  }
+}

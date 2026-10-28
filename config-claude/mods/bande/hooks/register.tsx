@@ -2,6 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface as Engine, ModelUsage, Register, SessionRateLimit } from 'claude-code'
 
 import type { Mesure, Plan, Quota } from '../types'
+import { disponibleGo, juger, SEUIL_GO } from './memoire'
+import { cheminEcrit, choisirPlan, depotDe, estPlan } from './projet'
 
 const mesure = atom({ plugin: 'bande', key: 'mesure' } as const, null)
 const agents = atom({ plugin: 'bande', key: 'agents' } as const, { actifs: 0, anomalies: [] })
@@ -10,6 +12,9 @@ const tour = atom({ plugin: 'bande', key: 'tour' } as const, { lus: 0, relus: 0,
 const plan = atom({ plugin: 'bande', key: 'plan' } as const, null)
 const memoire = atom({ plugin: 'bande', key: 'memoire' } as const, null)
 const muet = atom({ plugin: 'bande', key: 'muet' } as const, null)
+const cede = atom({ plugin: 'bande', key: 'cede' } as const, false)
+const racine = atom({ plugin: 'bande', key: 'racine' } as const, null)
+const planEcrit = atom({ plugin: 'bande', key: 'planEcrit' } as const, null)
 
 const VEILLE = '.claude/bin/veille-wf.py'
 const ANOMALIE = /agent gelé|arrêté|agent seul muet/
@@ -64,18 +69,27 @@ const mesurer = async ($: Engine) => {
     quotas: quotas(usage.rateLimits),
   }
   await update($, mesure, () => valeur)
+  if (valeur.quotas.length > 0)
+    await $.fs.write(`${await $.env.get('HOME')}/.claude/cache/quotas.json`, JSON.stringify({ quand: await $.clock.now(), quotas: valeur.quotas }))
 }
 
 const lirePlan = async ($: Engine) => {
-  const dossier = `${await $.session.cwd()}/evan`
+  const dossier = `${(await read($, racine)) ?? (await $.session.root())}/evan`
   if (!(await $.fs.exists(dossier))) return update($, plan, () => null)
-  const plans = (await $.fs.list(dossier)).filter(f => /^PLAN.*\.md$/.test(f.name))
-  if (plans.length === 0) return update($, plan, () => null)
-  const dates = await Promise.all(plans.map(async f => ({ f, t: (await $.fs.stat(`${dossier}/${f.name}`)).mtimeMs ?? 0 })))
-  const recent = dates.sort((a, b) => b.t - a.t)[0]?.f.name
+  const recent = choisirPlan(await $.fs.list(dossier), dossier, await read($, planEcrit))?.name
   if (recent === undefined) return update($, plan, () => null)
   const valeur = compterPlan(recent.replace(/^PLAN-?|\.md$/g, '') || 'plan', await $.fs.read(`${dossier}/${recent}`))
   await update($, plan, () => valeur)
+}
+
+async function suivreEcriture($: Engine, chemin: string) {
+  if (estPlan(chemin)) await update($, planEcrit, () => chemin)
+  const depot = await depotDe($, chemin)
+  if (depot !== null && depot !== (await read($, racine))) {
+    await update($, racine, () => depot)
+    $.ui.log(`bande: écriture dans ${chemin}, plan lu dans ${depot}`, { to: 'debug' })
+  }
+  await lirePlan($)
 }
 
 const lireMemoire = async ($: Engine) => {
@@ -85,9 +99,22 @@ const lireMemoire = async ($: Engine) => {
   if (go === null || avant === null || Math.abs(go - avant) >= 0.1) await update($, memoire, () => go)
 }
 
+const sessionsAgents = async ($: Engine) => {
+  const [sid, home] = await Promise.all([$.session.id(), $.env.get('HOME')])
+  const dossier = `${home}/.claude/cache/agents-sessions`
+  if (!(await $.fs.exists(dossier))) return 0
+  let n = 0
+  for (const f of await $.fs.list(dossier)) {
+    if (!f.name.endsWith('.json')) continue
+    const x = JSON.parse(await $.fs.read(`${dossier}/${f.name}`)) as { etat?: string; principale?: string; pid?: number }
+    if (x.etat === 'en cours' && x.principale === sid && x.pid !== undefined && (await $.fs.exists(`/proc/${x.pid}`))) n += 1
+  }
+  return n
+}
+
 const compter = async ($: Engine) => {
-  const liste = await $.agent.list()
-  const actifs = liste.filter(a => ACTIFS.has(a.status)).length
+  const [liste, enSession] = await Promise.all([$.agent.list(), sessionsAgents($)])
+  const actifs = liste.filter(a => ACTIFS.has(a.status)).length + enSession
   const avant = await read($, agents)
   if (avant.actifs !== actifs) await update($, agents, a => ({ ...a, actifs }))
 }
@@ -113,6 +140,12 @@ const veiller = async ($: Engine) => {
   if (neuves.length === 0) return
   await update($, signalees, l => [...l, ...neuves.flatMap(a => a.cles)])
   $.ui.toast(`Veille : ${neuves.map(a => a.texte).join(' ; ')}`, { timeoutMs: 20000 })
+}
+
+const lireEcran = async ($: Engine) => {
+  const chemin = `${await $.env.get('HOME')}/.claude/cache/ecran/config`
+  const allume = (await $.fs.exists(chemin)) && /^[1-9]/.test((await $.fs.read(chemin)).trim())
+  if (allume !== (await read($, cede))) await update($, cede, () => allume)
 }
 
 const sansEchec = ($: Engine, travail: () => Promise<unknown>) => () =>
@@ -141,7 +174,42 @@ const surveiller = async ($: Engine) => {
   }
 }
 
+const libre = { go: null as number | null, quand: 0, seuil: SEUIL_GO }
+
+async function memoireLibre($: Engine) {
+  const maintenant = await $.clock.now()
+  if (maintenant - libre.quand < 1000 && libre.go !== null) return libre.go
+  const run = await $.process.run(['cat', '/proc/meminfo'], { timeoutMs: 2000 })
+  libre.go = disponibleGo(run.stdout)
+  libre.quand = maintenant
+  const essai = `${await $.session.cwd()}/.garde-memoire-seuil-essai`
+  const valeur = (await $.fs.exists(essai)) ? Number((await $.fs.read(essai)).trim()) : NaN
+  libre.seuil = Number.isFinite(valeur) && valeur > 0 ? valeur : SEUIL_GO
+  return libre.go
+}
+
+async function noterRefus($: Engine, ligne: string) {
+  const chemin = `${await $.env.get('HOME')}/.claude/cache/memoire/mod-garde.log`
+  const avant = (await $.fs.exists(chemin)) ? await $.fs.read(chemin) : ''
+  const quand = new Date(await $.clock.now()).toISOString()
+  await $.fs.write(chemin, [...avant.split('\n').filter(Boolean).slice(-199), `${quand} ${ligne}`].join('\n') + '\n')
+}
+
 export const register: Register = on => {
+  on('tool.call', async ($, e, next) => {
+    const dispo = await memoireLibre($)
+    const refus = dispo === null ? null : juger(e.tool, e.tool === 'Bash' ? e.command : undefined, dispo, libre.seuil)
+    if (dispo === null || refus === null) {
+      const r = await next(e)
+      const chemin = e.agentId === undefined && !('deny' in r) && r.isError !== true ? cheminEcrit(e) : null
+      if (chemin !== null) sansEchec($, () => suivreEcriture($, chemin))()
+      return r
+    }
+    sansEchec($, () => noterRefus($, `${e.agentId ?? 'principal'} ${e.tool} ${dispo.toFixed(2)} Go ${e.tool === 'Bash' ? e.command.slice(0, 120) : ''}`))()
+    $.ui.toast(`Garde mémoire : ${e.tool} refusé, ${dispo.toFixed(1).replace('.', ',')} Go libres`)
+    return { deny: refus }
+  }).catch(($, e, next) => next(e))
+
   on('session.start', async ($, e, next) => {
     reglage.seuilMs = Number((await $.env.get('BANDE_SILENCE_S')) ?? 300) * 1000
     $.clock.every(5_000, sansEchec($, () => surveiller($)))
@@ -149,6 +217,8 @@ export const register: Register = on => {
     $.clock.every(30_000, sansEchec($, () => lirePlan($)))
     $.clock.every(5_000, sansEchec($, () => compter($)))
     $.clock.every(5_000, sansEchec($, () => lireMemoire($)))
+    sansEchec($, () => lireEcran($))()
+    $.clock.every(1_000, sansEchec($, () => lireEcran($)))
     sansEchec($, () => veiller($))()
     sansEchec($, () => mesurer($))()
     sansEchec($, () => lirePlan($))()
@@ -199,7 +269,7 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) return next(e)
+    if (e.props.hasSurvey || (await read($, cede))) return next(e)
     const [m, a, t, p, go, silence] = await Promise.all([
       read($, mesure), read($, agents), read($, tour), read($, plan), read($, memoire), read($, muet),
     ])
@@ -224,7 +294,6 @@ export const register: Register = on => {
           <Text dimColor> · tour {kilo(t.relus)} relus, {kilo(t.lus)} lus, {kilo(t.ecrits)} écrits</Text>
         )}
         {p !== null && <Text dimColor> · plan {p.faits}/{p.total} {barre(p.faits, p.total)}</Text>}
-        <Text dimColor> · agents {a.actifs}</Text>
         {gel > 0 && <Text color="error"> · {gel} en panne</Text>}
         {silence !== null && <Text color="error"> · appel muet depuis {depuis(silence.s)} ({silence.agent})</Text>}
         {go !== null && (

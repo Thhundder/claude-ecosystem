@@ -24,6 +24,20 @@ if [ -n "$libre" ] && awk -v l="$libre" -v s="${CONTRAT_RAM_MIN_GO:-3}" 'BEGIN{e
   exit 0
 fi
 
+petit=""
+if [ "$tool" = Agent ]; then
+  petit="$(printf '%s' "$input" | jq -r '.tool_input.model // empty' 2>/dev/null | grep -i -o -E 'sonnet|haiku' | head -1)"
+elif [ "$tool" = Workflow ]; then
+  chemin="$(printf '%s' "$input" | jq -r '.tool_input.scriptPath // empty' 2>/dev/null)"
+  petit="$({ printf '%s' "$input" | jq -r '.tool_input.script // empty' 2>/dev/null; [ -n "$chemin" ] && [ -f "$chemin" ] && cat "$chemin"; } \
+    | grep -i -o -E "model[\"']?[[:space:]]*:[[:space:]]*[\"'\`][^\"'\`]*(sonnet|haiku)" | grep -i -o -E 'sonnet|haiku' | head -1)"
+fi
+if [ -n "$petit" ]; then
+  jq -nc --arg r "Refusé : le lancement demande le modèle « $petit ». Un agent tourne sur le même modèle que la session (une session Fable peut lancer ses agents sur Opus), jamais Sonnet ni Haiku. Retirer le choix de modèle, ou mettre opus, puis relancer." \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+  exit 0
+fi
+
 rapport="$(printf '%s' "$input" | python3 "$HOME/.claude/bin/contrat-brief.py" 2>/dev/null)"; code=$?
 [ "$code" != 2 ] && exit 0
 corps="$rapport

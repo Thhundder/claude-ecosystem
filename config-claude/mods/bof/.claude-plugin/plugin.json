@@ -1,0 +1,1 @@
+{ "name": "bof", "version": "0.1.0", "description": "/bof <texte> : note ce qu'Evan n'aime pas, avec les 10 derniers échanges, à la fin de ~/.claude/retours/RETOURS.txt", "types": "./types/index.d.ts" }
