@@ -3,7 +3,7 @@ import type { EngineInterface as Engine, ModelUsage, Register, SessionRateLimit 
 
 import type { Mesure, Plan, Quota } from '../types'
 import { disponibleGo, juger, SEUIL_GO } from './memoire'
-import { cheminEcrit, choisirPlan, depotDe, estPlan } from './projet'
+import { cheminEcrit, estPlan, garderPlan, planGarde } from './projet'
 
 const mesure = atom({ plugin: 'bande', key: 'mesure' } as const, null)
 const agents = atom({ plugin: 'bande', key: 'agents' } as const, { actifs: 0, anomalies: [] })
@@ -13,7 +13,6 @@ const plan = atom({ plugin: 'bande', key: 'plan' } as const, null)
 const memoire = atom({ plugin: 'bande', key: 'memoire' } as const, null)
 const muet = atom({ plugin: 'bande', key: 'muet' } as const, null)
 const cede = atom({ plugin: 'bande', key: 'cede' } as const, false)
-const racine = atom({ plugin: 'bande', key: 'racine' } as const, null)
 const planEcrit = atom({ plugin: 'bande', key: 'planEcrit' } as const, null)
 
 const VEILLE = '.claude/bin/veille-wf.py'
@@ -73,21 +72,27 @@ const mesurer = async ($: Engine) => {
     await $.fs.write(`${await $.env.get('HOME')}/.claude/cache/quotas.json`, JSON.stringify({ quand: await $.clock.now(), quotas: valeur.quotas }))
 }
 
+async function planLie($: Engine) {
+  const ici = await read($, planEcrit)
+  if (ici !== null) return ici
+  const garde = await planGarde($)
+  if (garde !== null) await update($, planEcrit, () => garde)
+  return garde
+}
+
 const lirePlan = async ($: Engine) => {
-  const dossier = `${(await read($, racine)) ?? (await $.session.root())}/evan`
-  if (!(await $.fs.exists(dossier))) return update($, plan, () => null)
-  const recent = choisirPlan(await $.fs.list(dossier), dossier, await read($, planEcrit))?.name
-  if (recent === undefined) return update($, plan, () => null)
-  const valeur = compterPlan(recent.replace(/^PLAN-?|\.md$/g, '') || 'plan', await $.fs.read(`${dossier}/${recent}`))
+  const chemin = await planLie($)
+  if (chemin === null || !(await $.fs.exists(chemin))) return update($, plan, () => null)
+  const valeur = compterPlan(chemin.slice(chemin.lastIndexOf('/') + 1).replace(/^PLAN-?|\.md$/g, '') || 'plan', await $.fs.read(chemin))
   await update($, plan, () => valeur)
 }
 
+// Seul un plan écrit par la session la lie ; plus de dépôt suivi (29/10).
 async function suivreEcriture($: Engine, chemin: string) {
-  if (estPlan(chemin)) await update($, planEcrit, () => chemin)
-  const depot = await depotDe($, chemin)
-  if (depot !== null && depot !== (await read($, racine))) {
-    await update($, racine, () => depot)
-    $.ui.log(`bande: écriture dans ${chemin}, plan lu dans ${depot}`, { to: 'debug' })
+  if (!estPlan(chemin)) return
+  if (chemin !== (await read($, planEcrit))) {
+    await update($, planEcrit, () => chemin)
+    await garderPlan($, chemin)
   }
   await lirePlan($)
 }

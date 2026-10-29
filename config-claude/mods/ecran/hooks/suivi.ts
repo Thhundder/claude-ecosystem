@@ -1,23 +1,7 @@
 import type { Arbre, Noeud } from '../types'
 
-const LIBELLES = ['Chantier', 'Situation', 'Prochaine action', 'Bloqué par']
-const RUBRIQUES = ['Objectif', 'Inclus', 'Exclu', 'Fini quand']
-
 const net = (texte: string) =>
   texte.replace(/\*\*|`/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim()
-
-export function lireOuJenSuis(journal: string) {
-  const debut = journal.search(/^## Où j'en suis/m)
-  if (debut < 0) return []
-  const reste = journal.slice(debut).split('\n').slice(1)
-  const fin = reste.findIndex(l => /^## /.test(l))
-  const section = (fin < 0 ? reste : reste.slice(0, fin)).join('\n')
-  return LIBELLES.flatMap(libelle => {
-    const m = section.match(new RegExp(`^\\*\\*${libelle}\\*\\*\\s*:?\\s*([\\s\\S]*?)(?=^\\*\\*|^#|(?![\\s\\S]))`, 'm'))
-    const texte = m?.[1] ? net(m[1]) : ''
-    return texte ? [{ libelle, texte }] : []
-  })
-}
 
 const libelleEtape = (texte: string) =>
   net(texte)
@@ -85,51 +69,10 @@ export function lireArbrePlan(plan: string): Arbre | null {
   return { titre: titre || 'Plan', noeuds: arbre.enfants, faits: arbre.faits, total: arbre.total, enCours: chemin.at(-1) ?? null }
 }
 
-function rubriques(bloc: string[]): Noeud[] {
-  const lignes = bloc.filter(l => !/^=+$/.test(l.trim()))
-  return RUBRIQUES.flatMap(nom => {
-    const i = lignes.findIndex(l => new RegExp(`^\\s*${nom}\\s*(?::|$)`).test(l))
-    if (i < 0) return []
-    const premiere = lignes[i]!.replace(new RegExp(`^\\s*${nom}\\s*:?\\s*`), '')
-    const suite: string[] = []
-    for (const l of lignes.slice(i + 1)) {
-      if (l.trim() === '' || RUBRIQUES.some(r => new RegExp(`^\\s*${r}\\s*(?::|$)`).test(l)) || /^[A-ZÉ]/.test(l)) break
-      suite.push(l.trim().replace(/^- /, '· '))
-    }
-    const texte = net([premiere, ...suite].filter(Boolean).join(' '))
-    return texte ? [{ texte, etat: 'afaire' as const, enfants: [], faits: 0, total: 0, libelle: nom }] : []
-  })
-}
-
 export function lireProjet(cahier: string) {
   const entete = cahier.split(/^CHANTIER /m)[0] ?? ''
   const ligne = entete.match(/^Projet\s*:\s*(.+)$/m)?.[1]
   if (ligne) return net(ligne)
   const titre = entete.match(/^CAHIER DES CHARGES\s*[—–:-]\s*(.+)$/im)?.[1]
   return titre ? net(titre) : null
-}
-
-export function lireArbreCahier(cahier: string, journal = ''): Arbre | null {
-  const sections = cahier.split(/^CHANTIER /m).slice(1)
-  if (sections.length === 0) return null
-  const chantierJournal = lireOuJenSuis(journal).find(l => l.libelle === 'Chantier')?.texte.toLowerCase() ?? ''
-  const lus = sections.map(s => {
-    const lignes = s.split('\n')
-    const titre = net(lignes[0] ?? '')
-    const statut = s.match(/Statut\s*:\s*([^\n]*)/)?.[1]?.toLowerCase() ?? ''
-    const numero = lignes[0]?.match(/^(\d+)/)?.[1]
-    const nom = net(lignes[0] ?? '').replace(/^\d+\s*[—–-]\s*/, '').split(/\s+[—–-]\s+|\s*\(/)[0]!.toLowerCase()
-    const fait = /\b(fini|fait|terminé|livré|clos)\b/.test(statut)
-    const enCours = /en cours/.test(statut) || (chantierJournal !== '' && ((numero !== undefined && new RegExp(`chantier\\s+${numero}\\b`).test(chantierJournal)) || (nom.length > 3 && chantierJournal.includes(nom))))
-    return { titre, fait, enCours, lignes: lignes.slice(1) }
-  })
-  const courant = lus.findIndex(l => l.enCours && !l.fait)
-  const noeuds: Noeud[] = lus.map((l, i) => ({
-    texte: l.titre,
-    etat: l.fait ? 'fait' : i === courant ? 'encours' : 'afaire',
-    enfants: i === courant ? rubriques(l.lignes) : [],
-    faits: l.fait ? 1 : 0,
-    total: 1,
-  }))
-  return { titre: 'Cahier des charges', noeuds, faits: lus.filter(l => l.fait).length, total: lus.length, enCours: courant >= 0 ? lus[courant]!.titre : null }
 }

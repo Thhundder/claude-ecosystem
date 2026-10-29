@@ -2,10 +2,10 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface as Engine, Register } from 'claude-code'
 
 import type { Agent, Donnees, Ram, Tache } from '../types'
-import { chantiers, finiQuand, objectif, planPanneau } from './panneau'
+import { chantierDe, finiQuand, objectif, planPanneau, pointDuCahier } from './panneau'
 import type { AgentVivant } from './panneau'
-import { cheminEcrit, cheminsShell, choisirPlan, commandeShell, depotDe, estPlan } from './projet'
-import { lireArbreCahier, lireArbrePlan, lireProjet } from './suivi'
+import { chantierNomme, cheminEcrit, cheminsShell, commandeShell, dossierDe, estPlan, garderPlan, nomDe, planGarde } from './projet'
+import { lireArbrePlan, lireProjet } from './suivi'
 import { agir, planBas, segsBas, vueBas, vueLigne, vueSuivi } from './vues'
 import type { Actions, El } from './vues'
 
@@ -20,7 +20,6 @@ export const FORMAT = 'panneau-v4-20261027'
 const donnees = atom({ plugin: 'ecran', key: 'donnees' } as const, VIDE)
 const suivi = atom({ plugin: 'ecran', key: 'suivi' } as const, null, { shape: FORMAT })
 const ram = atom({ plugin: 'ecran', key: 'ram' } as const, null, { shape: FORMAT })
-const racine = atom({ plugin: 'ecran', key: 'racine' } as const, null)
 const place = atom({ plugin: 'ecran', key: 'place' } as const, false)
 const kitty = atom({ plugin: 'ecran', key: 'kitty' } as const, false)
 const petit = atom({ plugin: 'ecran', key: 'petit' } as const, false)
@@ -31,18 +30,32 @@ const planTout = atom({ plugin: 'ecran', key: 'planTout' } as const, false)
 const finiTout = atom({ plugin: 'ecran', key: 'finiTout' } as const, true)
 const finiOuvert = atom({ plugin: 'ecran', key: 'finiOuvert' } as const, null)
 
-const dossierEvan = async ($: Engine) => `${(await read($, racine)) ?? (await $.session.root())}/evan`
+// Le plan lié à la session : celui de l'état (rechargement, /clear), sinon celui gardé pour son identifiant.
+async function planLie($: Engine) {
+  const ici = await read($, planEcrit)
+  if (ici !== null) return ici
+  const garde = await planGarde($)
+  if (garde !== null) await update($, planEcrit, () => garde)
+  return garde
+}
 
 export const lirePlanTexte = (nom: string, texte: string) => {
   const arbre = lireArbrePlan(texte)
   return arbre === null || arbre.total === 0 ? null : { nom, faits: arbre.faits, total: arbre.total }
 }
 
+// Après /clear, l'état garde le plan et l'identifiant change : le lien suit la nouvelle session.
+async function relier($: Engine) {
+  const lie = await read($, planEcrit)
+  if (lie !== null) await garderPlan($, lie)
+}
+
+export const nomPlan =(chemin: string) => nomDe(chemin).replace(/^PLAN-?|\.md$/g, '') || 'plan'
+
 async function lirePlan($: Engine) {
-  const dossier = await dossierEvan($)
-  if (!(await $.fs.exists(dossier))) return null
-  const recent = choisirPlan(await $.fs.list(dossier), dossier, await read($, planEcrit))
-  return recent ? lirePlanTexte(recent.name.replace(/^PLAN-?|\.md$/g, '') || 'plan', await $.fs.read(`${dossier}/${recent.name}`)) : null
+  const plan = await planLie($)
+  if (plan === null || !(await $.fs.exists(plan))) return null
+  return lirePlanTexte(nomPlan(plan), await $.fs.read(plan))
 }
 
 async function lireMemoire($: Engine) {
@@ -109,10 +122,13 @@ async function mesurer($: Engine) {
   const vus = await read($, donnees)
   const debuts = new Map(vus.agents.map(a => [a.id, maintenant - a.depuis * 1000]))
   const agents = [...liste.filter(a => ACTIFS.has(a.status)).map(a => ({ id: a.id, nom: a.description || a.type, statut: a.status, depuis: Math.round((maintenant - (debuts.get(a.id) ?? maintenant)) / 1000) })), ...enSession]
-  const pct = usage.context.tokens === undefined ? null : Math.round((usage.context.tokens / usage.context.window) * 100)
+  // Avant la première réponse d'une session (rechargée, reprise), le moteur ne donne pas encore le remplissage :
+  // l'estimation locale de /context le remplace, sans appel réseau (le contexte manquait en bas, 28/10).
+  const tokens = usage.context.tokens ?? (await $.session.usage({ breakdown: 'summary' })).context.breakdown?.totalTokens
+  const pct = tokens === undefined ? null : Math.round((tokens / usage.context.window) * 100)
   await update($, donnees, d => ({
     ...d,
-    tokens: usage.context.tokens ?? null,
+    tokens: tokens ?? null,
     fenetre: usage.context.window,
     quotas: quotasVus(usage.rateLimits, d.quotas, maintenant),
     cout: usage.cost?.usd ?? null,
@@ -167,66 +183,60 @@ async function agentsVivants($: Engine, maintenant: number): Promise<AgentVivant
   return vivants
 }
 
-export function chantierCourant(cahier: string, journal: string) {
-  const liste = chantiers(cahier)
-  if (liste.length === 0) return null
-  const arbre = lireArbreCahier(cahier, journal)
-  const i = arbre ? arbre.noeuds.findIndex(n => n.etat === 'encours') : -1
-  const j = i >= 0 ? i : arbre ? arbre.noeuds.findIndex(n => n.etat !== 'fait') : 0
-  return liste[j >= 0 ? j : 0] ?? null
+// Chantier de la session : celui que son plan nomme, cherché dans le cahier du même dossier evan/ ; plus jamais
+// le « Où j'en suis » du journal, commun à toutes les sessions du dépôt (29/10).
+export function chantierLie(cahier: string, plan: string) {
+  const nomme = chantierNomme(plan)
+  if (nomme === null || cahier === '') return null
+  const c = chantierDe(cahier, nomme)
+  if (c !== null) return { libelle: `Chantier ${c.numero} · ${c.titre}`, objectif: objectif(cahier, c.numero), fini: finiQuand(cahier, c.numero) }
+  const numero = nomme.match(/^(\d+)\b/)?.[1]
+  const point = numero === undefined ? null : pointDuCahier(cahier, numero)
+  return point === null ? null : { libelle: `Point ${numero} · ${point.titre}`, objectif: null, fini: point.fini }
 }
 
 async function lireSuivi($: Engine) {
-  const dossier = await dossierEvan($)
-  const nomDossier = dossier.replace(/\/evan$/, '').split('/').pop() || dossier
-  const vide = { dossier, projet: nomDossier, chantier: null, objectif: null, plan: null, planNom: null, fini: [] }
-  if (!(await $.fs.exists(dossier))) {
+  const chemin = await planLie($)
+  const dossier = chemin === null ? null : dossierDe(chemin)
+  const projet = dossier === null ? '' : dossier.replace(/\/evan$/, '').split('/').pop() || dossier
+  const vide = { dossier: dossier ?? '', projet, chantier: null, objectif: null, plan: null, planNom: null, fini: [] }
+  if (chemin === null || dossier === null || !(await $.fs.exists(chemin))) {
     if (signature !== 'absent') await update($, suivi, () => vide)
     signature = 'absent'
     return
   }
   const maintenant = await $.clock.now()
   const [fichiers, vivants] = await Promise.all([$.fs.list(dossier), agentsVivants($, maintenant)])
-  const plan = choisirPlan(fichiers, dossier, await read($, planEcrit))
+  const plan = fichiers.find(f => f.name === nomDe(chemin))
   const journal = fichiers.find(f => f.name === 'JOURNAL.md')
   const cahier = fichiers.find(f => f.name === 'CAHIER-DES-CHARGES.txt')
-  const nouvelle = [...[plan, journal, cahier].map(f => (f ? `${f.name}:${f.mtimeMs}` : '-')), vivants.map(v => v.id).join(','), Math.floor(maintenant / 60000)].join('|')
+  const nouvelle = [chemin, ...[plan, journal, cahier].map(f => (f ? `${f.name}:${f.mtimeMs}` : '-')), vivants.map(v => v.id).join(','), Math.floor(maintenant / 60000)].join('|')
   if (nouvelle === signature) return
   signature = nouvelle
   const lire = (nom?: string) => (nom ? $.fs.read(`${dossier}/${nom}`) : Promise.resolve(''))
   const [textePlan, texteJournal, texteCahier] = await Promise.all([lire(plan?.name), lire(journal?.name), lire(cahier?.name)])
-  const chantier = cahier ? chantierCourant(texteCahier, texteJournal) : null
+  const chantier = chantierLie(texteCahier, textePlan)
   await update($, suivi, () => ({
     ...vide,
-    chantier: chantier ? `Chantier ${chantier.numero} · ${chantier.titre}` : null,
-    objectif: (chantier ? objectif(texteCahier, chantier.numero) : null) ?? (cahier ? lireProjet(texteCahier) : null),
+    chantier: chantier?.libelle ?? null,
+    objectif: chantier?.objectif ?? (cahier ? lireProjet(texteCahier) : null),
     plan: plan ? planPanneau(textePlan, texteJournal, vivants) : null,
-    planNom: plan ? plan.name.replace(/^PLAN-?|\.md$/g, '') || 'plan' : null,
-    fini: chantier ? finiQuand(texteCahier, chantier.numero) : [],
+    planNom: nomPlan(chemin),
+    fini: chantier?.fini ?? [],
   }))
 }
 
-async function deplacer($: Engine, depot: string) {
-  if (depot === (await $.session.root())) return
-  const r = await $.command.run({ command: 'cd', args: depot })
-  const apres = await $.session.root()
-  $.ui.log(`ecran: /cd ${depot} → racine ${apres}${r.text ? ` (${r.text.slice(0, 160)})` : ''}`, { to: 'debug' })
-  if (apres === depot) $.ui.toast(`Session déplacée sur ${depot.split('/').pop()}`)
-  else $.ui.log(`ecran: /cd ${depot} sans effet, racine restée ${apres}`)
-}
-
+// Seul un plan écrit par la session la lie ; une autre écriture relit seulement (cahier, journal du même dossier).
+// La session ne se déplace plus vers le dépôt écrit (/cd retiré le 29/10).
 async function suivreEcriture($: Engine, chemin: string) {
-  if (estPlan(chemin)) await update($, planEcrit, () => chemin)
-  const depot = await depotDe($, chemin)
-  if (depot !== null && depot !== (await read($, racine))) {
-    await update($, racine, () => depot)
+  if (estPlan(chemin) && chemin !== (await read($, planEcrit))) {
+    await update($, planEcrit, () => chemin)
+    await garderPlan($, chemin)
     signature = ''
-    $.ui.log(`ecran: écriture dans ${chemin}, panneaux sur ${depot}`, { to: 'debug' })
-    if (depot !== (await $.session.root())) $.clock.after(0, sansEchec($, () => deplacer($, depot)))
+    $.ui.log(`ecran: session liée au plan ${chemin}`, { to: 'debug' })
   }
   await Promise.all([lireSuivi($), mesurer($)])
 }
-
 // Le système de fichiers date l'écriture au tic d'horloge grossier du noyau, jusqu'à quelques ms avant Date.now().
 const MARGE_MTIME = 50
 
@@ -357,7 +367,6 @@ const actions = ($: Engine): Actions => ({
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    if ((await read($, racine)) === null) await update($, racine, () => e.cwd)
     const terminal = await $.env.get('TERM')
     await update($, kitty, () => terminal === 'xterm-kitty')
     sansEchec($, () => signaler($))()
@@ -367,6 +376,7 @@ export const register: Register = on => {
     if (typeof tout === 'boolean') await update($, planTout, () => tout)
     const toutFini = await $.store.get('finiTout')
     if (typeof toutFini === 'boolean') await update($, finiTout, () => toutFini)
+    sansEchec($, () => relier($))()
     signature = ''
     panneauOuvert = null
     sansEchec($, () => placerPanneau($))()
@@ -416,8 +426,10 @@ export const register: Register = on => {
     return vueLigne($.ui.resolve(e) as El, await read($, donnees)) ?? next(e)
   })
 
-  // Sous la saisie : la ligne du bas du panneau, mot pour mot (demande d'Evan 27/10).
+  // Sous la saisie : la ligne du bas du panneau, mot pour mot (demande d'Evan 27/10) ; rien quand le panneau est
+  // posé, qui l'a déjà en bas (28/10).
   on('ui.render', { component: 'PromptHint' }, async ($, e) => {
+    if (await read($, place)) return $.ui.resolve(e).Box({})
     const d = await read($, donnees)
     return vueBas($.ui.resolve(e) as El, segsBas(d, planBas(await read($, suivi), d)))
   })

@@ -4,7 +4,7 @@ import type { TestBody } from 'claude-code/testing'
 import type { Ram, Suivi } from '../types'
 import { actionSous, CHAUD } from '../hooks/ligne-client'
 import { arbreAuPlus, courtFini, finiQuand, lancees, lignesArbre, memoireRouge, nonFinis, objectif, planFini, planPanneau, processeurRouge, sousEtapes, titreEtape, titrePlan } from '../hooks/panneau'
-import { chantierCourant, FORMAT, horsDelai, quotasVus } from '../hooks/register'
+import { chantierLie, FORMAT, horsDelai, quotasVus } from '../hooks/register'
 import { hauteurRond } from '../hooks/ram-geo'
 import { lignesDetail, propsValides, ROUGE, SURVOL, survolSous } from '../hooks/ronds-client'
 import { A, lignesFini, partsMemoire, partsProcesseur, propsRonds } from '../hooks/vues'
@@ -110,7 +110,18 @@ describe('plan en arbre', () => {
 describe('cahier des charges', () => {
   test('objectif en une phrase, chantier courant', async () => {
     expect(objectif(CAHIER, '1')).toBe("Un chatbot sur luna qui fait mieux que la prod d'aujourd'hui (gpt-4.1), atteint le plus vite possible.")
-    expect(chantierCourant(CAHIER, '')).toEqual({ numero: '1', titre: 'Reconstruire le chatbot avec luna' })
+    const lie = chantierLie(CAHIER, '# Plan\nChantier : 1\n- [ ] a')!
+    expect(lie.libelle).toBe('Chantier 1 · Reconstruire le chatbot avec luna')
+    expect(lie.fini).toEqual(finiQuand(CAHIER, '1'))
+    expect(chantierLie(CAHIER, '# Plan\n- [ ] a')).toBeNull()
+    expect(chantierLie(CAHIER, '# Plan\nChantier : 9\n')).toBeNull()
+  })
+  test('cahier à points numérotés (claude-ecosystem) : le point nommé et ses fini quand', async () => {
+    const cahier = 'CHANTIER : RÉGLAGES\n\nInclus\n  12. (Evan 27/10.) Fin de réponse : « Ce que tu dois faire ».\n     Fini quand : le style le dit.                     [fait]\n  13. (Evan 29/10.) Panneau et ligne du bas : une session = un plan.\n     Mots d\'Evan : « même plan ».\n     Fini quand : deux sessions montrent chacune leur plan ; aucune n\'est\n     déplacée ; validé par Evan.\n  14. Autre.\n\nExclu\n'
+    const p = chantierLie(cahier, 'Chantier : 13 (cahier du 29/10)')!
+    expect(p.libelle).toBe('Point 13 · Panneau et ligne du bas')
+    expect(p.fini.map(f => [f.court, f.atteint])).toEqual([['Deux sessions montrent chacune leur plan', false], ["Aucune n'est déplacée", false], ['Validé par Evan', false]])
+    expect(chantierLie(cahier, 'Chantier : 12')!.fini).toEqual([{ court: 'Le style le dit', long: 'Le style le dit', atteint: true }])
   })
   test('fini quand : une ligne courte par point, le long avec son introduction, atteints marqués, pas la décision', async () => {
     const f = finiQuand(CAHIER, '1')
@@ -220,7 +231,7 @@ describe('ronds mémoire et processeur', () => {
     expect(Math.abs(c[3]!.valeur - (23.6 + 21.6 + 1.7))).toBeLessThan(1e-9)
     const p = propsRonds(RAM, 89)
     for (const r of p.ronds) expect(Math.abs(r.fractions.reduce((s, x) => s + x, 0) - 1)).toBeLessThan(1e-9)
-    expect(p.ronds.map(r => r.totaux)).toEqual(['13,4 Go utilisés · 47,7 Go libres', '16 cœurs · 16 %'])
+    expect(p.ronds.map(r => r.totaux)).toEqual(['64 Go · 22 %', '16 cœurs · 16 %'])
     expect(p.ronds[1]!.parts[0]!.texte).toBe(' 8,4 %  sessions Claude')
     expect(p.ronds[0]!.parts[3]!.texte).toBe('  6,2 Go  système et autre')
     expect(new Set(p.ronds[0]!.parts.map(x => x.couleur)).size).toBe(4)
@@ -339,14 +350,14 @@ describe('panneau monté', () => {
 
   test('totaux au-dessus des légendes : couleur du texte, rouge franc si critique', async ($, on) => {
     const ui = await monter($, on, SUIVI, RAM)
-    expect((await ui.find({ type: 'Text', text: /^13,4 Go utilisés · 47,7 Go libres$/, in: 'ronds-v4' }))?.props.color).toBe('#E1DDD2')
+    expect((await ui.find({ type: 'Text', text: /^64 Go · 22 %$/, in: 'ronds-v4' }))?.props.color).toBe('#E1DDD2')
     expect((await ui.find({ type: 'Text', text: /^16 cœurs · 16 %$/, in: 'ronds-v4' }))?.props.color).toBe('#E1DDD2')
     await ui.unmount()
   })
 
   test('totaux en rouge franc : mémoire libre < 10 %, processeur > 95 %', async ($, on) => {
     const ui = await monter($, on, SUIVI, { ...RAM, dispo: 4_000_000, cpu_pris: 1597 })
-    expect((await ui.find({ type: 'Text', text: /Go libres$/, in: 'ronds-v4' }))?.props.color).toBe(ROUGE)
+    expect((await ui.find({ type: 'Text', text: /^\d+ Go · /, in: 'ronds-v4' }))?.props.color).toBe(ROUGE)
     expect((await ui.find({ type: 'Text', text: /^16 cœurs · 100 %$/, in: 'ronds-v4' }))?.props.color).toBe(ROUGE)
     expect(ROUGE).not.toBe('#D97757')
     await ui.unmount()
@@ -421,7 +432,7 @@ describe('ligne sous la saisie (27/10)', () => {
   test('la même que le bas du panneau, avec contexte, sans état ni signe', async ($, on) => {
     on('session.start', (_, e) => ({ cwd: e.cwd }))
     on('ui.open', () => ({ value: { isPlaced: true } }))
-    const semees: Record<string, unknown> = { suivi: { shape: FORMAT, value: SUIVI }, ram: { shape: FORMAT, value: RAM }, donnees: DONNEES }
+    const semees: Record<string, unknown> = { suivi: { shape: FORMAT, value: SUIVI }, ram: { shape: FORMAT, value: RAM }, donnees: DONNEES, place: false }
     on('state.get', (_, e, next) => (e.key in semees ? { value: { value: semees[e.key], version: 1 } } : next(e)))
     const panneau = await $.ui.mount(PANE)
     const plusLong = (ts: { text: string }[]) => ts.map(t => t.text).sort((x, y) => y.length - x.length)[0]
@@ -440,6 +451,13 @@ describe('ligne sous la saisie (27/10)', () => {
     expect(couleurs).toContainEqual([' │ ', A.trait])
     expect(couleurs).toContainEqual(['contexte ', A.gris])
     await panneau.unmount()
+    await saisie.unmount()
+  })
+  test('panneau posé : rien sous la saisie, la ligne est déjà en bas du panneau (28/10)', async ($, on) => {
+    const semees: Record<string, unknown> = { donnees: DONNEES, place: true }
+    on('state.get', (_, e, next) => (e.key in semees ? { value: { value: semees[e.key], version: 1 } } : next(e)))
+    const saisie = await $.ui.mount({ plugin: 'ecran', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: true, hint: '⏵⏵ auto mode on (shift+tab to cycle)' } })
+    expect((await saisie.findAll({ type: 'Text' })).map(t => t.text).join('')).toBe('')
     await saisie.unmount()
   })
   test('bande au-dessus de la saisie : plus de « travaille » ni « à toi »', async ($, on) => {

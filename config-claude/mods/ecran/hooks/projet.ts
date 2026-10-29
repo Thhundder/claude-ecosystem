@@ -9,15 +9,38 @@ export const cheminEcrit = (e: { tool: string; file_path?: unknown; notebook_pat
 
 export const estPlan = (chemin: string) => /\/evan\/PLAN[^/]*\.md$/.test(chemin)
 
-export const choisirPlan = <F extends { name: string; mtimeMs: number }>(fichiers: readonly F[], dossier: string, ecrit: string | null) => {
-  const plans = fichiers.filter(f => /^PLAN.*\.md$/.test(f.name))
-  return plans.find(f => `${dossier}/${f.name}` === ecrit) ?? [...plans].sort((a, b) => b.mtimeMs - a.mtimeMs)[0]
+export const dossierDe = (chemin: string) => chemin.slice(0, chemin.lastIndexOf('/')) || '/'
+export const nomDe = (chemin: string) => chemin.slice(chemin.lastIndexOf('/') + 1)
+
+// Une session = un plan (demande d'Evan du 29/10) : le dernier PLAN*.md que la session a écrit, gardé par
+// identifiant de session dans le magasin du mod pour survivre au rechargement et à la reprise. Jamais le plus
+// récent du dossier : toutes les sessions d'un dépôt montraient alors le même plan. Un lien de plus de 30 jours
+// est oublié.
+const LIENS = 'liens'
+const GARDE_MS = 30 * 24 * 3600 * 1000
+
+type Liens = Record<string, { plan: string; t: number }>
+
+async function lireLiens($: Engine): Promise<Liens> {
+  const brut = await $.store.get(LIENS)
+  return brut !== null && typeof brut === 'object' ? (brut as Liens) : {}
 }
 
-export async function depotDe($: Engine, chemin: string) {
-  const dossier = chemin.slice(0, chemin.lastIndexOf('/')) || '/'
-  const run = await $.process.run(['git', '-C', dossier, 'rev-parse', '--show-toplevel'], { timeoutMs: 2000 })
-  return run.exitCode === 0 ? run.stdout.trim() || null : null
+export async function planGarde($: Engine) {
+  const lien = (await lireLiens($))[await $.session.id()]
+  return typeof lien?.plan === 'string' ? lien.plan : null
+}
+
+export async function garderPlan($: Engine, plan: string) {
+  const [sid, maintenant, liens] = await Promise.all([$.session.id(), $.clock.now(), lireLiens($)])
+  const frais = Object.fromEntries(Object.entries(liens).filter(([, l]) => maintenant - l.t < GARDE_MS))
+  await $.store.set(LIENS, { ...frais, [sid]: { plan, t: maintenant } })
+}
+
+// Le chantier que le plan nomme : la ligne « Chantier : … », sinon « Chantier N » dans le titre.
+export function chantierNomme(plan: string) {
+  const ligne = plan.match(/^\**Chantier\**\s*:\s*(.+)$/im)?.[1] ?? plan.match(/^#\s.*\bChantier\s+(\d+)\b/im)?.[1]
+  return ligne ? ligne.replace(/\*\*|`/g, '').trim() || null : null
 }
 
 // Commande Bash de la session, lancée au premier plan (une commande de fond écrit après la fin de l'appel).

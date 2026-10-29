@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { echecPolice, finErreur, estPleine, panneauVoulu, reposer, fusionner, lireEncours, lirePlanTexte } from '../hooks/register'
-import { lireArbreCahier, lireArbrePlan, lireOuJenSuis, lireProjet } from '../hooks/suivi'
+import { lireArbrePlan, lireProjet } from '../hooks/suivi'
 import { dureeCourte, hauteurTaches } from '../hooks/vues'
 import { camembert } from '../hooks/ram-geo'
 
@@ -13,16 +13,6 @@ describe('plan', () => {
 })
 
 describe('panneau où on en est', () => {
-  test('journal : les quatre rubriques de « Où j’en suis », pas au-delà', async () => {
-    const journal = "# J\n\n## Où j'en suis\n\n**Chantier** Revue `config`.\n**Situation** fini,\nsur deux lignes.\n**Suite** : autre\n**Prochaine action** Rien.\n\n## Autre\n**Bloqué par** hors section\n"
-    expect(lireOuJenSuis(journal)).toEqual([
-      { libelle: 'Chantier', texte: 'Revue config.' },
-      { libelle: 'Situation', texte: 'fini, sur deux lignes.' },
-      { libelle: 'Prochaine action', texte: 'Rien.' },
-    ])
-    expect(lireOuJenSuis('rien')).toEqual([])
-    expect(lireOuJenSuis("## Où j'en suis\n**Prochaine action** a\n### 2026-10-03 vieux\n")).toEqual([{ libelle: 'Prochaine action', texte: 'a' }])
-  })
   test('plan en arbre : titres, cases, retraits ; la première case non cochée est en cours', async () => {
     const plan = [
       '# Plan de la nuit — à valider par Evan',
@@ -63,19 +53,11 @@ describe('panneau où on en est', () => {
     expect(a.noeuds.map(n => [n.texte, n.etat])).toEqual([['1 Lire', 'fait'], ['2 Écrire', 'encours'], ['3 Tester', 'afaire']])
     expect(lireArbrePlan('# rien\ntexte')).toBeNull()
   })
-  test('cahier en arbre : statut, ou chantier du journal ; rubriques du chantier en cours', async () => {
+  test('projet du cahier en une phrase', async () => {
     const cahier = 'CAHIER DES CHARGES - MATCHA\nProjet : Site de rencontre Matcha\n=====\nCHANTIER 1 - DONNÉES (Evan) - EN PREMIER\n=====\nObjectif : la structure\nde tout.\nInclus\n- Modèle\n- Contrat\nExclu : le design.\nFini quand : tout passe.\n\nCHANTIER 2 - AUTH (binôme)\nObjectif : conforme.\n'
     expect(lireProjet(cahier)).toBe('Site de rencontre Matcha')
     expect(lireProjet('CAHIER DES CHARGES - MATCHA\n')).toBe('MATCHA')
     expect(lireProjet('rien')).toBeNull()
-    const a = lireArbreCahier(cahier, "## Où j'en suis\n**Chantier** : chantier 1, les données\n")!
-    expect(a.noeuds.map(n => n.etat)).toEqual(['encours', 'afaire'])
-    expect(a.noeuds[0]!.enfants.map(n => [n.libelle, n.texte])).toEqual([['Objectif', 'la structure de tout.'], ['Inclus', '· Modèle · Contrat'], ['Exclu', 'le design.'], ['Fini quand', 'tout passe.']])
-    expect(a.enCours).toBe('1 - DONNÉES (Evan) - EN PREMIER')
-    const b = lireArbreCahier('CHANTIER Un\nStatut : fini\nCHANTIER Deux\nStatut : en cours\nObjectif\n  faire deux\n')!
-    expect(b.noeuds.map(n => n.etat)).toEqual(['fait', 'encours'])
-    expect(b.noeuds[1]!.enfants[0]!.texte).toBe('faire deux')
-    expect(lireArbreCahier('sans chantier')).toBeNull()
   })
 })
 

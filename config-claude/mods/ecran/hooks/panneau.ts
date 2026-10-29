@@ -226,6 +226,45 @@ export function chantiers(cahier: string) {
   return [...cahier.matchAll(/^CHANTIER (\d+)\s*[—–-]\s*(.+)$/gm)].map(m => ({ numero: m[1]!, titre: m[2]!.trim() }))
 }
 
+// Le chantier du cahier que le plan nomme (« 3 », « 3 — titre », ou le titre seul) ; null si aucun ne répond.
+export function chantierDe(cahier: string, nomme: string) {
+  const liste = chantiers(cahier)
+  const numero = nomme.match(/^(\d+)\b/)?.[1]
+  if (numero !== undefined) return liste.find(c => c.numero === numero) ?? null
+  const bas = nomme.toLowerCase()
+  return liste.find(c => bas.includes(c.titre.toLowerCase()) || c.titre.toLowerCase().includes(bas)) ?? null
+}
+
+// Cahier à un seul chantier et points numérotés (« 13. … Fini quand : … [fait] »), comme celui de
+// claude-ecosystem : le point N, son titre et ses « fini quand » coupés aux « ; ».
+export function pointDuCahier(cahier: string, numero: string): { titre: string; fini: PointFini[] } | null {
+  const lignes = cahier.split('\n')
+  const i = lignes.findIndex(l => new RegExp(`^ {1,6}${numero}\\.\\s`).test(l))
+  if (i < 0) return null
+  const retrait = lignes[i]!.search(/\S/)
+  const bloc = [lignes[i]!.trim().replace(/^\d+\.\s*/, '')]
+  for (const l of lignes.slice(i + 1)) {
+    if (l.trim() === '' || l.search(/\S/) <= retrait) break
+    bloc.push(l.trim())
+  }
+  const titre = couper(nettoyer(bloc[0]!.replace(/\s*\[fait\]\s*$/i, '')))
+  const k = bloc.findIndex(l => /^Fini quand\s*:/i.test(l))
+  if (k < 0) return { titre, fini: [] }
+  let texte = bloc[k]!.replace(/^Fini quand\s*:\s*/i, '')
+  for (const l of bloc.slice(k + 1)) {
+    if (/^[A-ZÉ][\wéèêàç' ]{0,30}(?:\(|:)/.test(l)) break
+    texte += ` ${l}`
+  }
+  const atteint = /\[fait\]\s*$/i.test(texte)
+  const fini = texte
+    .replace(/\s*\[fait\]\s*$/i, '')
+    .split(/ ; /)
+    .map(p => p.replace(/[.;\s]+$/, '').trim())
+    .filter(p => p !== '')
+    .map(p => ({ court: courtFini(p), long: majuscule(p), atteint }))
+  return { titre, fini }
+}
+
 export function objectif(cahier: string, chantier: string) {
   const phrase: string[] = []
   for (const l of section(cahier, chantier, 'OBJECTIF')) {

@@ -15,7 +15,6 @@ declare module 'claude-code' {
       memoire: number | null
       muet: { agent: string; s: number } | null
       cede: boolean
-      racine: string | null
       planEcrit: string | null
     }
   }

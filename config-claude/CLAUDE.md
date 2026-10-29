@@ -11,7 +11,8 @@ consommation mesurée d'un lancement précédent (`~/.claude/bin/cout-vol.py`), 
 - Un cahier des charges validé ouvre le plan, pas le code : le plan attend lui aussi son GO.
 - Un coût s'écrit en jetons (lus en cache, écrits, produits), jamais en dollars ni en euros pour
   l'abonnement Claude.
-- Un plan : une case `- [ ]` par étape (cochée `- [x]` une fois finie), chaque étape commence par un
+- Un plan : une ligne « Chantier : <numéro ou titre du chantier du cahier> » sous le titre (le panneau lie la
+  session à ce chantier), puis une case `- [ ]` par étape (cochée `- [x]` une fois finie), chaque étape commence par un
   titre court lisible seul, ses sous-étapes en dessous, décalées ; chaque étape dit « fini quand » et
   « on arrête si ».
 - Cahier des charges : un par dépôt, `evan/CAHIER-DES-CHARGES.txt`, une section par chantier (objectif,

@@ -249,11 +249,15 @@ const fractions = (valeurs: readonly number[]) => {
   return somme > 0 ? valeurs.map(v => v / somme) : valeurs.map(() => 1 / valeurs.length)
 }
 
+const pctTexte = (p: number) => (p < 10 ? `${virgule(p)} %` : `${Math.round(p)} %`)
+
 // Processeur sur une base de 100 % = toute la machine.
-export const pctMachine = (cpu: number, coeurs: number) => {
-  const p = coeurs > 0 ? cpu / coeurs : 0
-  return p < 10 ? `${virgule(p)} %` : `${Math.round(p)} %`
-}
+export const pctMachine = (cpu: number, coeurs: number) => pctTexte(coeurs > 0 ? cpu / coeurs : 0)
+
+// Mémoire comme le processeur (28/10) : la taille posée dans la machine (MemTotal arrondi aux 8 Go du dessus :
+// 62,0 Go lus → 64 Go), puis la part utilisée de toute la mémoire.
+export const goPoses = (totalKo: number) => `${Math.max(8, Math.ceil(totalKo / GO / 8) * 8)} Go`
+export const pctMemoire = (r: Ram) => pctTexte(r.total > 0 ? ((r.total - r.dispo) / r.total) * 100 : 0)
 
 function tableau(r: Ram, p: Part, parMemoire: boolean): Tableau {
   const pc = (cpu: number) => pctMachine(cpu, r.coeurs)
@@ -300,7 +304,7 @@ export function propsRonds(r: Ram, colonnes: number, rangs = rangsMax(colsRond(c
     largeur: colonnes - 1,
     ronds: [
       {
-        totaux: `${go(r.total - r.dispo)} utilisés · ${go(r.dispo)} libres`,
+        totaux: `${goPoses(r.total)} · ${pctMemoire(r)}`,
         rouge: memoireRouge(r.total, r.dispo),
         fractions: fm,
         parts: ps.map(p => ({ couleur: TEINTES[p.nom]!, texte: `${virgule(p.ko / GO).padStart(5)} Go  ${p.nom}` })),

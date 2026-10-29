@@ -47,7 +47,6 @@ declare module 'claude-code' {
       donnees: Donnees
       suivi: Shaped<Suivi | null>
       ram: Shaped<Ram | null>
-      racine: string | null
       place: boolean
       largeur: number
       kitty: boolean
